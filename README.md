@@ -131,22 +131,22 @@ Create an account, generate an API Key, and start tracking your models!
 
 ```mermaid
 graph TD
-    subgraph "Client Environment (Data Scientist's Laptop)"
+    subgraph Client["Client Environment"]
         A[Live ML Pipeline] -->|1. Feed Data| B(ModelShift SDK)
         B -->|2. Compute Math| B
-        B -->|3. push()| C[Transmitter]
+        B -->|3. Transmit| C[API Transmitter]
     end
 
-    subgraph "ModelShift Cloud (FastAPI Backend)"
-        C -->|4. POST JSON + API_KEY| D{FastAPI Router}
-        D -->|5. Validate Key| E[(SQLite Security Vault)]
-        D -->|6. Save Telemetry| F[Time-Series JSON Storage]
+    subgraph Cloud["ModelShift Cloud Backend"]
+        C -->|4. POST JSON| D{FastAPI Router}
+        D -->|5. Validate Key| E[(SQLite Vault)]
+        D -->|6. Save Data| F[Time-Series Storage]
     end
 
-    subgraph "Outputs & Notification"
-        F -->|7. Live Fetch| G[Cyberpunk Web Dashboard]
-        D -->|8. Trigger if CRITICAL| H[Background Worker]
-        H -->|9. SMTP Dispatch| I[✉️ HTML Email Alert]
+    subgraph Output["Outputs & Alerts"]
+        F -->|7. Live Fetch| G[Web Dashboard]
+        D -->|8. If CRITICAL| H[Background Worker]
+        H -->|9. Dispatch| I[HTML Email Alert]
     end
 
     classDef sdk fill:#1d2023,stroke:#d11f1f,stroke-width:2px,color:#fff;
