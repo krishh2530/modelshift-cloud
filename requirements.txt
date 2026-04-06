@@ -13,3 +13,4 @@ scipy
 scikit-learn
 streamlit
 matplotlib
+psycopg2-binary==2.9.9
