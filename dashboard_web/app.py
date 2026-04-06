@@ -63,47 +63,25 @@ SELFTEST_JSON = DATA_DIR / "selftest.json"
 # -------------------------------------------------------------------
 # App & Startup
 # -------------------------------------------------------------------
+
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Hard reset on server start: Wipes all previously generated runs.
+    Server startup: Ensures directories exist but PRESERVES previous data.
     """
     DATASETS_DIR = DATA_DIR / "datasets"
     
-    # 1. Empty the runs and datasets folders
-    for folder in [RUNS_DIR, DATASETS_DIR]:
-        if folder.exists():
-            for p in folder.iterdir():
-                if p.is_file():
-                    p.unlink(missing_ok=True)
-                    
-    # 2. Delete the state tracker files
-    state_files = [LATEST_JSON, PREVIOUS_JSON, REPORT_LATEST_HTML, SELFTEST_JSON]
-    for f in state_files:
-        if f.exists():
-            f.unlink(missing_ok=True)
-            
-    # 3. Ensure directories exist again
+    # Ensure directories exist (Keep this)
     ensure_dirs()
     DATASETS_DIR.mkdir(parents=True, exist_ok=True)
     
-    # 4. Reset the history index
-    write_json_atomic(HISTORY_INDEX_JSON, {
-        "schema_version": 2,
-        "generated_at": datetime.now().isoformat(timespec="seconds"),
-        "count": 0,
-        "items": [],
-    })
-    
     print("\n" + "="*60)
-    print("[+] HARD RESET: All previous dashboard data wiped.")
-    print("[+] The dashboard is a blank slate. Ready for fresh runs.")
+    print("[+] Server started. Existing dashboard data preserved.")
     print("="*60 + "\n")
     
     yield # This tells FastAPI the startup is done and the server can run
-
 # --- NOW WE INITIALIZE THE APP WITH THE LIFESPAN WE JUST DEFINED ---
 app = FastAPI(title="ModelShift-Lite Dashboard", lifespan=lifespan)
 
@@ -731,18 +709,17 @@ def receive_drift_data(
 # -------------------------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html")
+
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
     """Serves the Login UI"""
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="login.html")
 
 @app.get("/signup", response_class=HTMLResponse)
 def signup_page(request: Request):
     """Serves the Signup UI"""
-    return templates.TemplateResponse("signup.html", {"request": request})
-
-
+    return templates.TemplateResponse(request=request, name="signup.html")
 @app.get("/api/health")
 def api_health(response: Response):
     """
@@ -1066,3 +1043,6 @@ def view_dataset(run_id: str):
     except Exception as e:
         import traceback
         return HTMLResponse(content=f"<pre style='color:red;'>{traceback.format_exc()}</pre>", status_code=500)
+@app.get("/")
+def read_root():
+    return {"status": "ModelShift API is live and running!"}
