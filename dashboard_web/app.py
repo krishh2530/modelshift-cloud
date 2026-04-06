@@ -1045,14 +1045,15 @@ def view_dataset(run_id: str):
         return HTMLResponse(content=f"<pre style='color:red;'>{traceback.format_exc()}</pre>", status_code=500)
 #from fastapi.responses import HTMLResponse, RedirectResponse
 
-@app.get("/")
-def home():
-    """Forces all visitors to go to the login page first."""
-    return RedirectResponse(url="/login")
+@app.get("/", response_class=HTMLResponse)
+def landing_page(request: Request):
+    """Serves the Product Landing Page (Marketing/Info)"""
+    return templates.TemplateResponse(request=request, name="home.html")
 
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard_page(request: Request):
     """Serves the Main Dashboard UI (Protected)"""
+    # Your dashboard file is currently named index.html
     return templates.TemplateResponse(request=request, name="index.html")
 
 @app.get("/login", response_class=HTMLResponse)
