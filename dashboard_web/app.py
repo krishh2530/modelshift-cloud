@@ -707,19 +707,6 @@ def receive_drift_data(
 # -------------------------------------------------------------------
 # Routes
 # -------------------------------------------------------------------
-@app.get("/", response_class=HTMLResponse)
-def home(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
-
-@app.get("/login", response_class=HTMLResponse)
-def login_page(request: Request):
-    """Serves the Login UI"""
-    return templates.TemplateResponse(request=request, name="login.html")
-
-@app.get("/signup", response_class=HTMLResponse)
-def signup_page(request: Request):
-    """Serves the Signup UI"""
-    return templates.TemplateResponse(request=request, name="signup.html")
 @app.get("/api/health")
 def api_health(response: Response):
     """
