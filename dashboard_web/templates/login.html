@@ -107,7 +107,7 @@
                 if (response.ok) {
                     localStorage.setItem("modelshift_api_key", data.api_key);
                     localStorage.setItem("modelshift_email", data.email);
-                    window.location.href = "/";
+                    window.location.href = "/dashboard";
                 } else {
                     alert("ACCESS DENIED: " + data.detail);
                     btn.innerText = "INITIALIZE SESSION";

@@ -15,7 +15,7 @@ from contextlib import asynccontextmanager
 from fastapi.security import APIKeyHeader
 from fastapi import Security
 from fastapi import FastAPI, HTTPException, Query, Response, Depends, BackgroundTasks
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
@@ -1043,6 +1043,24 @@ def view_dataset(run_id: str):
     except Exception as e:
         import traceback
         return HTMLResponse(content=f"<pre style='color:red;'>{traceback.format_exc()}</pre>", status_code=500)
+#from fastapi.responses import HTMLResponse, RedirectResponse
+
 @app.get("/")
-def read_root():
-    return {"status": "ModelShift API is live and running!"}
+def home():
+    """Forces all visitors to go to the login page first."""
+    return RedirectResponse(url="/login")
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard_page(request: Request):
+    """Serves the Main Dashboard UI (Protected)"""
+    return templates.TemplateResponse(request=request, name="index.html")
+
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    """Serves the Login UI"""
+    return templates.TemplateResponse(request=request, name="login.html")
+
+@app.get("/signup", response_class=HTMLResponse)
+def signup_page(request: Request):
+    """Serves the Signup UI"""
+    return templates.TemplateResponse(request=request, name="signup.html")
