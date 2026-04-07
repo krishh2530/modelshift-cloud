@@ -1182,18 +1182,18 @@ function setLivePill(isLive) {
   function drawChart(canvas, seriesClean, seriesDrifted, opts) {
     const { ctx, w, h } = setupCanvas(canvas);
 
-    const padL = 48,
-      padR = 18,
+    const padL = 60,
+      padR = 24,
       padT = 14,
-      padB = 34;
+      padB = 40;
 
     const total = Math.max(seriesClean.length, seriesDrifted.length);
     ctx.clearRect(0, 0, w, h);
 
     if (total < 2) {
       ctx.fillStyle = "rgba(255,255,255,0.75)";
-      ctx.font = "12px ui-monospace, Menlo, Consolas, monospace";
-      ctx.fillText("No series data found in JSON.", 14, 18);
+      ctx.font = "14px ui-monospace, Menlo, Consolas, monospace";
+      ctx.fillText("No data available. Run the Python pipeline to beam data here.", 14, 24);
       return;
     }
 
@@ -1275,13 +1275,17 @@ function setLivePill(isLive) {
     ctx.setLineDash([]);
 
     // axis labels
+    // axis labels
     ctx.fillStyle = "rgba(255,255,255,0.72)";
     ctx.font = "12px ui-monospace, Menlo, Consolas, monospace";
+    
+    ctx.textAlign = "right"; // Aligns Y-axis numbers cleanly to the left of the line
     for (let t = 0; t <= yTicks; t++) {
       const v = ymax - (t / yTicks) * (ymax - ymin);
       const y = gy0 + (t / yTicks) * (gy1 - gy0);
-      ctx.fillText(fmtMaybeInt(v), 8, y + 4);
+      ctx.fillText(fmtMaybeInt(v), gx0 - 8, y + 4); 
     }
+    ctx.textAlign = "left"; // Reset for X-axis
     for (let t = 0; t <= xTicks; t++) {
       const idx = Math.round(start + (t / xTicks) * (vis - 1));
       const x = gx0 + (t / xTicks) * (gx1 - gx0);
@@ -1503,34 +1507,61 @@ setLivePill(liveConnected);
     }
   }
 
-  async function fetchResults() {
-    try {
-      const data = await fetchJson(apiUrl(`/api/results?t=${Date.now()}`), "results");
-      updateFromData(data);
+async function fetchResults() {
+  try {
+    const data = await fetchJson(apiUrl(`/api/results?t=${Date.now()}`), "results");
 
-      // If Analysis tab previously showed a fetch error, restore JSON
-      if (analysisJson && /failed to fetch|http\s\d+/i.test(analysisJson.textContent || "")) {
-        analysisJson.textContent = JSON.stringify({ latest: state.latest, previous: state.previous }, null, 2);
-      }
-    } catch (e) {
-      // Ignore aborts (normal during polling overlap)
-      if (e?.name === "AbortError") return;
-      setLivePill(false);
-      // Don't destroy dashboard state if one poll fails
-      if (alertBox) {
-        alertBox.textContent = "WARNING: /api/results fetch failed. Showing last known values.";
+    // ✅ ADD THIS BLOCK HERE
+    if (!data.latest || Object.keys(data.latest).length === 0) {
+      const dashboardContainer = document.getElementById("dashboard-container");
+      const exportBtn = document.getElementById("exportBtn");
+
+      if (dashboardContainer) {
+        dashboardContainer.innerHTML =
+          "<h2>No data available. Please run your Python pipeline to beam data here.</h2>";
       }
 
-      // Only show error in Analysis if nothing is loaded yet
-      const hasData = state.latest && Object.keys(state.latest).length > 0;
-      if (analysisJson && !hasData) {
-        analysisJson.textContent =
-          `Fetch error: ${String(e)}\n\n` +
-          `If you opened the HTML directly, run it from the backend server so /api/results is available.\n` +
-          `You can also set window.MODELSHIFT_API_BASE if frontend and backend are on different ports.`;
+      if (exportBtn) {
+        exportBtn.disabled = true;
+        exportBtn.innerText = "No data to export";
       }
+
+      return; // ⛔ stop execution
+    }
+
+    // ✅ only runs if data exists
+    updateFromData(data);
+
+    // Restore Analysis JSON if needed
+    if (analysisJson && /failed to fetch|http\s\d+/i.test(analysisJson.textContent || "")) {
+      analysisJson.textContent = JSON.stringify(
+        { latest: state.latest, previous: state.previous },
+        null,
+        2
+      );
+    }
+
+  } catch (e) {
+    // Ignore aborts (normal during polling overlap)
+    if (e?.name === "AbortError") return;
+
+    setLivePill(false);
+
+    if (alertBox) {
+      alertBox.textContent =
+        "WARNING: /api/results fetch failed. Showing last known values.";
+    }
+
+    const hasData = state.latest && Object.keys(state.latest).length > 0;
+
+    if (analysisJson && !hasData) {
+      analysisJson.textContent =
+        `Fetch error: ${String(e)}\n\n` +
+        `If you opened the HTML directly, run it from the backend server so /api/results is available.\n` +
+        `You can also set window.MODELSHIFT_API_BASE if frontend and backend are on different ports.`;
     }
   }
+}
 
   async function fetchHistory() {
     try {
@@ -1933,6 +1964,11 @@ setLivePill(liveConnected);
 
   async function exportReport() {
     const runId = state.latestMeta?.run_id || "UNKNOWN_RUN";
+    
+    if (runId === "—" || runId === "UNKNOWN_RUN") {
+        alert("No data available to export! Please run the Python pipeline first.");
+        return;
+    }
 
     try {
       const res = await fetch(apiUrl(`/api/report/latest?download=1&t=${Date.now()}`), { cache: "no-store" });
@@ -1967,7 +2003,12 @@ setLivePill(liveConnected);
 
   function applyTheme() {
     const theme = localStorage.getItem("ms_theme") || "dark";
-    document.documentElement.dataset.theme = theme;
+    // This makes the CSS you added work perfectly!
+    if (theme === "light") {
+      document.body.classList.add("light-theme");
+    } else {
+      document.body.classList.remove("light-theme");
+    }
   }
 
   // -----------------------------
@@ -2149,4 +2190,16 @@ async function fetchSelfTest(run = false) {
   } catch (e) {
     renderSelfTest({ ok: false, message: `Self-test fetch failed: ${String(e)}` });
   }
+}
+function logoutUser() {
+    // Clear the stored credentials
+    localStorage.removeItem("api_key"); 
+    localStorage.removeItem("email");
+    // Kick them back to the login page
+    window.location.href = "/login";
+}
+
+
+function toggleTheme() {
+    document.body.classList.toggle("light-theme");
 }

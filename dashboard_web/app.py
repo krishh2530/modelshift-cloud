@@ -594,7 +594,7 @@ def login_user(user: UserCreate, db: Session = Depends(get_db)):
     # 1. Find the user by email
     db_user = db.query(User).filter(User.email == user.email).first()
     if not db_user:
-        raise HTTPException(status_code=400, detail="Invalid Operator ID or Security Key")
+        raise HTTPException(status_code=400, detail="Account doesn't exist")
     
     # 2. Check the password using bcrypt
     valid_password = bcrypt.checkpw(

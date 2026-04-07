@@ -497,3 +497,12 @@ body:not([data-page="dash"]) #dashControls{display:none}
   opacity:.7;
 }
 .bad{ color:#d11f1f; font-weight:900; }
+
+
+/* Light Theme Override */
+body.light-theme {
+    background: #f4f7f6;
+    color: #1a1d20;
+}
+body.light-theme .dataset-table th { background: #e0e5e9; color: black; }
+body.light-theme .tab-content { background: #ffffff; }
