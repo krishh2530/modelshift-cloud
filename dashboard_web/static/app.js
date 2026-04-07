@@ -1346,6 +1346,13 @@ function setLivePill(isLive) {
   // Render from API payload
   // -----------------------------
   function updateFromData(payload) {
+    // --- RE-ENABLE EXPORT BUTTON ---
+    const exportBtn = document.getElementById("exportBtn");
+    if (exportBtn) {
+      exportBtn.disabled = false;
+      exportBtn.innerText = "EXPORT REPORT";
+    }
+
 // --- SMART VIEW DATASET BUTTON ---
     const viewDatasetBtn = document.getElementById("viewDatasetBtn");
     const statusUpper = String(state.latestMeta.status || "").toUpperCase();
@@ -1513,20 +1520,12 @@ async function fetchResults() {
 
     // ✅ ADD THIS BLOCK HERE
     if (!data.latest || Object.keys(data.latest).length === 0) {
-      const dashboardContainer = document.getElementById("dashboard-container");
       const exportBtn = document.getElementById("exportBtn");
-
-      if (dashboardContainer) {
-        dashboardContainer.innerHTML =
-          "<h2>No data available. Please run your Python pipeline to beam data here.</h2>";
-      }
-
       if (exportBtn) {
         exportBtn.disabled = true;
         exportBtn.innerText = "No data to export";
       }
-
-      return; // ⛔ stop execution
+      return; 
     }
 
     // ✅ only runs if data exists
