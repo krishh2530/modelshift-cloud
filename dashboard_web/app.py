@@ -500,16 +500,7 @@ def _history_from_runs_scan(n: int) -> List[Dict[str, Any]]:
 
 def _clear_history_files() -> Dict[str, Any]:
     """
-    Clears archived history artifacts while keeping latest.json and report_latest.html intact.
-    Also resets previous.json and history_index.json.
-
-    Deletes:
-    - dashboard_web/data/runs/*.json
-    - dashboard_web/data/runs/*.report.html
-
-    Resets:
-    - dashboard_web/data/history_index.json -> empty items
-    - dashboard_web/data/previous.json -> {}
+    Clears ALL history artifacts including latest, previous, and index.
     """
     ensure_dirs()
 
@@ -517,12 +508,12 @@ def _clear_history_files() -> Dict[str, Any]:
     deleted_run_reports = 0
     errors: List[str] = []
 
+    # 1. Delete all archived runs
     for p in RUNS_DIR.iterdir():
         if not p.is_file():
             continue
 
         try:
-            # exact suffix handling to avoid accidental deletions
             if p.name.endswith(".report.html"):
                 p.unlink(missing_ok=True)
                 deleted_run_reports += 1
@@ -532,7 +523,14 @@ def _clear_history_files() -> Dict[str, Any]:
         except Exception as exc:
             errors.append(f"{p.name}: {exc}")
 
+    # 2. THE FIX: Nuke the active dashboard files
     try:
+        if LATEST_JSON.exists(): LATEST_JSON.unlink()
+        if PREVIOUS_JSON.exists(): PREVIOUS_JSON.unlink()
+        if LIVE_HEARTBEAT.exists(): LIVE_HEARTBEAT.unlink()
+        if REPORT_LATEST_HTML.exists(): REPORT_LATEST_HTML.unlink()
+        
+        # Reset the history index to zero
         write_json_atomic(HISTORY_INDEX_JSON, {
             "schema_version": 1,
             "generated_at": datetime.now().isoformat(timespec="seconds"),
@@ -540,12 +538,7 @@ def _clear_history_files() -> Dict[str, Any]:
             "items": [],
         })
     except Exception as exc:
-        errors.append(f"history_index.json: {exc}")
-
-    try:
-        write_json_atomic(PREVIOUS_JSON, {})
-    except Exception as exc:
-        errors.append(f"previous.json: {exc}")
+        errors.append(f"Dashboard reset error: {exc}")
 
     return {
         "deleted_run_json": deleted_run_json,

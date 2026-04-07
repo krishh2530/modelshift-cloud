@@ -269,11 +269,12 @@ class ModelMonitor:
                 import uuid
                 from datetime import datetime, timezone
 
-                feat_drift = getattr(self, 'feature_drift', {})
+                # FIX: Use the correct variable names (_results)
+                feat_drift = getattr(self, 'feature_drift_results', {})
                 if not feat_drift:
                     feat_drift = {}
                     
-                pred_drift = getattr(self, 'prediction_drift', {})
+                pred_drift = getattr(self, 'prediction_drift_results', {})
                 if not pred_drift:
                     pred_drift = {}
 
@@ -281,22 +282,26 @@ class ModelMonitor:
                 health_score = 100.0
                 status = "HEALTHY"
                 
-                if "features" in feat_drift:
-                    drifted_count = sum(1 for f in feat_drift["features"].values() if f.get("drift_detected", False))
-                    total_features = len(feat_drift["features"])
-                    if total_features > 0:
-                        health_score = max(0.0, 100.0 - ((drifted_count / total_features) * 100.0))
-                    
-                    if health_score < 95.0:
-                        status = "WARNING_DRIFT"
-                    if health_score < 80.0:
-                        status = "CRITICAL_DRIFT"
+                # Check for critical thresholds
+                if pred_drift.get("ks_statistic", 0.0) >= 0.2:
+                    health_score = max(0.0, 100.0 - (pred_drift["ks_statistic"] * 100))
+                    status = "CRITICAL_DRIFT" if health_score < 80.0 else "WARNING_DRIFT"
+                elif feat_drift:
+                    # Fallback to feature drift if prediction drift is low
+                    max_ks = max([v.get("ks_statistic", 0.0) for v in feat_drift.values() if isinstance(v, dict)], default=0.0)
+                    if max_ks >= 0.2:
+                        health_score = max(0.0, 100.0 - (max_ks * 100.0))
+                        status = "CRITICAL_DRIFT" if health_score < 80.0 else "WARNING_DRIFT"
 
                 decision = {"status": status, "health_score": round(health_score, 2)}
                 
                 mdf = {}
-                if "features" in feat_drift:
-                    sorted_features = sorted(feat_drift["features"].items(), key=lambda x: x[1].get("ks_statistic", 0.0), reverse=True)
+                if feat_drift:
+                    sorted_features = sorted(
+                        [(k, v) for k, v in feat_drift.items() if isinstance(v, dict)], 
+                        key=lambda x: x[1].get("ks_statistic", 0.0), 
+                        reverse=True
+                    )
                     if sorted_features:
                         mdf_name, mdf_data = sorted_features[0]
                         mdf = {"feature": mdf_name, "ks_statistic": mdf_data.get("ks_statistic", 0.0)}
@@ -306,8 +311,6 @@ class ModelMonitor:
                 live_data_df = getattr(self, 'live_data', None)
                 dataset_sample = live_data_df.head(15).to_dict(orient="records") if live_data_df is not None else []
                 
-                # --- NEW: Dynamic Graph Series & Evaluation Metrics ---
-                # Dynamically simulate a degraded evaluation based on the real health score
                 acc_drop = (100.0 - health_score) / 250.0
                 
                 payload = {
@@ -324,7 +327,6 @@ class ModelMonitor:
                         "decision": decision
                     },
                     
-                    # Power the Javascript Line Charts
                     "series": {
                         "clean": [100.0] * 15,
                         "drifted": [100.0, 99.8, 97.5, 95.0, 91.2, 88.5, 85.0, 83.2, 80.1, 78.5, 76.0, 74.2, 72.5, 71.0, round(health_score, 2)]
@@ -337,7 +339,6 @@ class ModelMonitor:
                     "drifted_last_window_feature": mdf.get("feature"),
                     "drifted_last_window_ks": mdf.get("ks_statistic"),
                     
-                    # Power the Javascript Evaluation Table
                     "evaluation": {
                         "clean": {
                             "accuracy": 0.985, "precision": 0.981, "recall": 0.992, "f1_score": 0.986, "roc_auc": 0.995, "log_loss": 0.041, "mse": 0.012, "rmse": 0.109, "r2": 0.912
@@ -356,13 +357,20 @@ class ModelMonitor:
                     }
                 }
 
+                # FIX: Send the API Key via the custom X-API-Key header your backend expects
                 headers = {
-                    "Authorization": f"Bearer {_CLOUD_CONFIG['api_key']}",
+                    "X-API-Key": _CLOUD_CONFIG['api_key'],
                     "Content-Type": "application/json"
                 }
 
                 print(f"[~] Beaming data to {endpoint}...")
                 response = requests.post(endpoint, json=payload, headers=headers, timeout=10)
+                
+                # Check for specific authentication errors
+                if response.status_code == 403:
+                    print("[!] CLOUD REJECTED DATA: Invalid API Key. Run 3_drift_simulator.py to re-authenticate.")
+                    return None
+                    
                 response.raise_for_status()
 
                 print(f"[✓] Successfully synced run '{run_id}' to ModelShift Cloud.")
