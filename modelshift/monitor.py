@@ -259,128 +259,127 @@ class ModelMonitor:
     # Phase 2: Cloud Sync Method
     # -----------------------
     def push(self) -> Optional[Dict[str, Any]]:
-            endpoint = _CLOUD_CONFIG["endpoint"]
-            if not _CLOUD_CONFIG["api_key"]:
-                print("[!] SDK Warning: API key not configured. Skipping cloud sync.")
-                return None
+        endpoint = _CLOUD_CONFIG["endpoint"]
+        if not _CLOUD_CONFIG["api_key"]:
+            print("[!] SDK Warning: API key not configured. Skipping cloud sync.")
+            return None
 
-            try:
-                import requests
-                import uuid
-                from datetime import datetime, timezone
+        try:
+            import requests
+            import uuid
+            from datetime import datetime, timezone
 
-                # FIX: Use the correct variable names (_results)
-                feat_drift = getattr(self, 'feature_drift_results', {})
-                if not feat_drift:
-                    feat_drift = {}
-                    
-                pred_drift = getattr(self, 'prediction_drift_results', {})
-                if not pred_drift:
-                    pred_drift = {}
-
-                # --- Calculate the Decision / Health Score dynamically ---
-                health_score = 100.0
-                status = "HEALTHY"
+            feat_drift = getattr(self, 'feature_drift_results', {})
+            if not feat_drift:
+                feat_drift = {}
                 
-                # Check for critical thresholds
-                if pred_drift.get("ks_statistic", 0.0) >= 0.2:
-                    health_score = max(0.0, 100.0 - (pred_drift["ks_statistic"] * 100))
+            pred_drift = getattr(self, 'prediction_drift_results', {})
+            if not pred_drift:
+                pred_drift = {}
+
+            health_score = 100.0
+            status = "HEALTHY"
+            
+            if pred_drift.get("ks_statistic", 0.0) >= 0.2:
+                health_score = max(0.0, 100.0 - (pred_drift["ks_statistic"] * 100))
+                status = "CRITICAL_DRIFT" if health_score < 80.0 else "WARNING_DRIFT"
+            elif feat_drift:
+                max_ks = max([v.get("ks_statistic", 0.0) for v in feat_drift.values() if isinstance(v, dict)], default=0.0)
+                if max_ks >= 0.2:
+                    health_score = max(0.0, 100.0 - (max_ks * 100.0))
                     status = "CRITICAL_DRIFT" if health_score < 80.0 else "WARNING_DRIFT"
-                elif feat_drift:
-                    # Fallback to feature drift if prediction drift is low
-                    max_ks = max([v.get("ks_statistic", 0.0) for v in feat_drift.values() if isinstance(v, dict)], default=0.0)
-                    if max_ks >= 0.2:
-                        health_score = max(0.0, 100.0 - (max_ks * 100.0))
-                        status = "CRITICAL_DRIFT" if health_score < 80.0 else "WARNING_DRIFT"
 
-                decision = {"status": status, "health_score": round(health_score, 2)}
-                
-                mdf = {}
-                if feat_drift:
-                    sorted_features = sorted(
-                        [(k, v) for k, v in feat_drift.items() if isinstance(v, dict)], 
-                        key=lambda x: x[1].get("ks_statistic", 0.0), 
-                        reverse=True
-                    )
-                    if sorted_features:
-                        mdf_name, mdf_data = sorted_features[0]
-                        mdf = {"feature": mdf_name, "ks_statistic": mdf_data.get("ks_statistic", 0.0)}
+            decision = {"status": status, "health_score": round(health_score, 2)}
+            
+            mdf = {}
+            if feat_drift:
+                sorted_features = sorted(
+                    [(k, v) for k, v in feat_drift.items() if isinstance(v, dict)], 
+                    key=lambda x: x[1].get("ks_statistic", 0.0), 
+                    reverse=True
+                )
+                if sorted_features:
+                    mdf_name, mdf_data = sorted_features[0]
+                    mdf = {"feature": mdf_name, "ks_statistic": mdf_data.get("ks_statistic", 0.0)}
 
-                run_id = f"run_{uuid.uuid4().hex[:8]}"
+            run_id = f"run_{uuid.uuid4().hex[:8]}"
+            
+            live_data_df = getattr(self, 'live_data', None)
+            dataset_sample = live_data_df.head(15).to_dict(orient="records") if live_data_df is not None else []
+            
+            # --- THE BASELINE FIX ---
+            if hasattr(self, 'baseline') and hasattr(self.baseline, 'get_data'):
+                df_ref = self.baseline.get_data()
+                baseline_sample = df_ref.head(15).to_dict(orient="records") if df_ref is not None else []
+            else:
+                baseline_sample = []
+            
+            acc_drop = (100.0 - health_score) / 250.0
+            
+            payload = {
+                "run_id": run_id,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "status": decision["status"],
+                "window_size": len(live_data_df) if live_data_df is not None else 0,
                 
-                live_data_df = getattr(self, 'live_data', None)
-                dataset_sample = live_data_df.head(15).to_dict(orient="records") if live_data_df is not None else []
+                "dataset_sample": dataset_sample,
+                "baseline_sample": baseline_sample,
                 
-                acc_drop = (100.0 - health_score) / 250.0
+                "drift_analysis": {
+                    "feature_drift": feat_drift,
+                    "prediction_drift": pred_drift,
+                    "decision": decision
+                },
                 
-                payload = {
-                    "run_id": run_id,
-                    "generated_at": datetime.now(timezone.utc).isoformat(),
-                    "status": decision["status"],
-                    "window_size": len(live_data_df) if live_data_df is not None else 0,
-                    
-                    "dataset_sample": dataset_sample,
-                    
-                    "drift_analysis": {
-                        "feature_drift": feat_drift,
-                        "prediction_drift": pred_drift,
-                        "decision": decision
+                "series": {
+                    "clean": [100.0] * 15,
+                    "drifted": [100.0, 99.8, 97.5, 95.0, 91.2, 88.5, 85.0, 83.2, 80.1, 78.5, 76.0, 74.2, 72.5, 71.0, round(health_score, 2)]
+                },
+                
+                "clean_health": 100.0,
+                "drifted_health": decision["health_score"],
+                "drifted_pred_ks": pred_drift.get("ks_statistic", 0.0),
+                "drifted_entropy_change": pred_drift.get("delta_entropy", 0.0),
+                "drifted_last_window_feature": mdf.get("feature"),
+                "drifted_last_window_ks": mdf.get("ks_statistic"),
+                
+                "evaluation": {
+                    "clean": {
+                        "accuracy": 0.985, "precision": 0.981, "recall": 0.992, "f1_score": 0.986, "roc_auc": 0.995, "log_loss": 0.041, "mse": 0.012, "rmse": 0.109, "r2": 0.912
                     },
-                    
-                    "series": {
-                        "clean": [100.0] * 15,
-                        "drifted": [100.0, 99.8, 97.5, 95.0, 91.2, 88.5, 85.0, 83.2, 80.1, 78.5, 76.0, 74.2, 72.5, 71.0, round(health_score, 2)]
-                    },
-                    
-                    "clean_health": 100.0,
-                    "drifted_health": decision["health_score"],
-                    "drifted_pred_ks": pred_drift.get("ks_statistic", 0.0),
-                    "drifted_entropy_change": pred_drift.get("delta_entropy", 0.0),
-                    "drifted_last_window_feature": mdf.get("feature"),
-                    "drifted_last_window_ks": mdf.get("ks_statistic"),
-                    
-                    "evaluation": {
-                        "clean": {
-                            "accuracy": 0.985, "precision": 0.981, "recall": 0.992, "f1_score": 0.986, "roc_auc": 0.995, "log_loss": 0.041, "mse": 0.012, "rmse": 0.109, "r2": 0.912
-                        },
-                        "drifted": {
-                            "accuracy": max(0.5, round(0.985 - acc_drop, 3)),
-                            "precision": max(0.5, round(0.981 - (acc_drop * 1.2), 3)),
-                            "recall": max(0.5, round(0.992 - (acc_drop * 0.8), 3)),
-                            "f1_score": max(0.5, round(0.986 - acc_drop, 3)),
-                            "roc_auc": max(0.5, round(0.995 - (acc_drop * 0.5), 3)),
-                            "log_loss": round(0.041 + (acc_drop * 4.0), 3),
-                            "mse": round(0.012 + (acc_drop * 2.0), 3),
-                            "rmse": round(0.109 + (acc_drop * 1.5), 3),
-                            "r2": max(0.0, round(0.912 - (acc_drop * 2.5), 3))
-                        }
+                    "drifted": {
+                        "accuracy": max(0.5, round(0.985 - acc_drop, 3)),
+                        "precision": max(0.5, round(0.981 - (acc_drop * 1.2), 3)),
+                        "recall": max(0.5, round(0.992 - (acc_drop * 0.8), 3)),
+                        "f1_score": max(0.5, round(0.986 - acc_drop, 3)),
+                        "roc_auc": max(0.5, round(0.995 - (acc_drop * 0.5), 3)),
+                        "log_loss": round(0.041 + (acc_drop * 4.0), 3),
+                        "mse": round(0.012 + (acc_drop * 2.0), 3),
+                        "rmse": round(0.109 + (acc_drop * 1.5), 3),
+                        "r2": max(0.0, round(0.912 - (acc_drop * 2.5), 3))
                     }
                 }
+            }
 
-                # FIX: Send the API Key via the custom X-API-Key header your backend expects
-                headers = {
-                    "X-API-Key": _CLOUD_CONFIG['api_key'],
-                    "Content-Type": "application/json"
-                }
+            headers = {
+                "X-API-Key": _CLOUD_CONFIG['api_key'],
+                "Content-Type": "application/json"
+            }
 
-                print(f"[~] Beaming data to {endpoint}...")
-                response = requests.post(endpoint, json=payload, headers=headers, timeout=10)
-                
-                # Check for specific authentication errors
-                if response.status_code == 403:
-                    print("[!] CLOUD REJECTED DATA: Invalid API Key. Run 3_drift_simulator.py to re-authenticate.")
-                    return None
-                    
-                response.raise_for_status()
-
-                print(f"[✓] Successfully synced run '{run_id}' to ModelShift Cloud.")
-                return response.json()
-
-            except Exception as e:
-                print(f"[!] Unexpected error during cloud sync: {e}")
-                import traceback
-                traceback.print_exc() 
+            print(f"[~] Beaming data to {endpoint}...")
+            response = requests.post(endpoint, json=payload, headers=headers, timeout=10)
+            
+            if response.status_code == 403:
+                print("[!] CLOUD REJECTED DATA: Invalid API Key.")
                 return None
+                
+            response.raise_for_status()
+            print(f"[✓] Successfully synced run '{run_id}' to ModelShift Cloud.")
+            return response.json()
+
+        except Exception as e:
+            print(f"[!] Unexpected error during cloud sync: {e}")
+            return None
 
 
 # -----------------------

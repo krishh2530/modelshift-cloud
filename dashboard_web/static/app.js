@@ -23,6 +23,12 @@
   const API_BASE = String(window.MODELSHIFT_API_BASE || "").replace(/\/+$/, "");
   const apiUrl = (path) => `${API_BASE}${path}`;
 
+  // --- PRIVACY SHIELD: KICK OUT UNAUTHENTICATED USERS ---
+  const apiKey = localStorage.getItem("api_key");
+  if (!apiKey && window.location.pathname === "/dashboard") {
+      window.location.href = "/"; 
+  }
+
   // -----------------------------
   // Helpers
   // -----------------------------
@@ -1363,7 +1369,8 @@ function setLivePill(isLive) {
     if (viewDatasetBtn && state.latestMeta.run_id && state.latestMeta.run_id !== "—" && hasDrift) {
       viewDatasetBtn.style.display = "inline-block";
       viewDatasetBtn.onclick = () => {
-        window.open(apiUrl(`/dataset/${state.latestMeta.run_id}`), "_blank");
+        // Pass API key in the URL so the new tab is authenticated!
+        window.open(apiUrl(`/dataset/${state.latestMeta.run_id}?api_key=${apiKey}`), "_blank");
       };
     } else if (viewDatasetBtn) {
       viewDatasetBtn.style.display = "none";
@@ -1500,7 +1507,10 @@ setLivePill(liveConnected);
       const res = await fetch(url, {
         cache: "no-store",
         signal: controller.signal,
-        headers: { Accept: "application/json" },
+        headers: { 
+            "Accept": "application/json",
+            "X-API-Key": apiKey || "" // Send your private token to the backend
+        },
       });
 
       if (!res.ok) {
@@ -2031,11 +2041,13 @@ async function fetchResults() {
   // -----------------------------
   function init() {
     // nav clicks
+    // nav clicks
     document.querySelectorAll(".navbtn").forEach((b) => {
       b.addEventListener("click", () => setPage(b.dataset.page));
+    }); // <-- MOVED THE BRACKET HERE!
+    
     selfTestRunBtn?.addEventListener("click", () => fetchSelfTest(true));
     fetchSelfTest(false);
-    });
 
     // controls
     zoomSlider?.addEventListener("input", () => setZoom(zoomSlider.value));
@@ -2087,7 +2099,10 @@ clearHistoryBtn?.addEventListener("click", async () => {
     const res = await fetch(apiUrl(`/api/history/clear?t=${Date.now()}`), {
       method: "POST",
       cache: "no-store",
-      headers: { Accept: "application/json" },
+      headers: { 
+          "Accept": "application/json",
+          "X-API-Key": apiKey || "" 
+      },
     });
 
     if (!res.ok) {
