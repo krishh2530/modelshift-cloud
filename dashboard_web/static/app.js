@@ -26,11 +26,12 @@
   // --- PRIVACY SHIELD: KICK OUT UNAUTHENTICATED USERS ---
   // --- PRIVACY SHIELD: KICK OUT UNAUTHENTICATED USERS ---
   // Safely grab the key and strip accidental quotes
-  const rawKey = localStorage.getItem("api_key") || localStorage.getItem("apiKey") || "";
-  const apiKey = rawKey.replace(/^"|"$/g, ''); 
+  const rawKey = localStorage.getItem("api_key") || localStorage.getItem("apiKey") || localStorage.getItem("token") || "";
+  const apiKey = rawKey.replace(/^"|"$/g, '').replace(/^Bearer /i, '').trim(); 
 
   if (!apiKey && window.location.pathname.includes("/dashboard")) {
-      window.location.href = "/login"; 
+      console.warn("No API Key found. Dashboard will load but show authentication errors.");
+      // FIX: Removed the automatic redirect to stop the infinite loop!
   }
 
   // -----------------------------
@@ -1517,10 +1518,17 @@ setLivePill(liveConnected);
       });
 
       // Safely handle rejection without an infinite loop
+      // Safely handle rejection without an infinite loop
       if (res.status === 401 || res.status === 403) {
-          console.warn("API Key rejected. Please log in again.");
-          if (typeof logoutUser === 'function') logoutUser();
-          return;
+          console.warn("API Key rejected by server.");
+          const alertBox = document.getElementById("alertBox");
+          if (alertBox) {
+              alertBox.innerHTML = `⚠️ Authentication Error: Your session is invalid or missing. <a href="/login" style="color:#ffcc00; text-decoration:underline;">Click here to log in</a>.`;
+              alertBox.style.borderColor = "rgba(209,31,31,0.55)";
+              alertBox.style.background = "rgba(209,31,31,0.12)";
+          }
+          stopFetchLoop(); // Stop hammering the server
+          return null; // Return null to prevent crashes, but DO NOT redirect
       }
 
       if (!res.ok) {
@@ -1537,6 +1545,9 @@ setLivePill(liveConnected);
 async function fetchResults() {
   try {
     const data = await fetchJson(apiUrl(`/api/results?t=${Date.now()}`), "results");
+    
+    // Stop processing if auth failed
+    if (!data) return; 
 
     // ✅ ADD THIS BLOCK HERE
     if (!data.latest || Object.keys(data.latest).length === 0) {

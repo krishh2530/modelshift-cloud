@@ -265,14 +265,15 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 def get_current_user(api_key: str = Security(api_key_header), db: Session = Depends(get_db)):
     if not api_key: raise HTTPException(status_code=403, detail="No API Key provided.")
-    clean_key = api_key.strip('"').strip("'") # Fixes the invisible quotes bug!
+    # Brutally strip quotes, spaces, and Bearer tags
+    clean_key = api_key.replace("Bearer ", "").replace("bearer ", "").strip('"').strip("'").strip()
     user = db.query(User).filter(User.api_key == clean_key).first()
     if not user: raise HTTPException(status_code=403, detail="Invalid API Key. Access Denied.")
     return user
 
 def get_user_from_query(api_key: str = Query(None), db: Session = Depends(get_db)):
     if not api_key: raise HTTPException(status_code=403, detail="No API Key provided.")
-    clean_key = api_key.strip('"').strip("'")
+    clean_key = api_key.replace("Bearer ", "").replace("bearer ", "").strip('"').strip("'").strip()
     user = db.query(User).filter(User.api_key == clean_key).first()
     if not user: raise HTTPException(status_code=403, detail="Invalid API Key.")
     return user
