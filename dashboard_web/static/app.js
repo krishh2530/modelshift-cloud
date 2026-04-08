@@ -24,9 +24,13 @@
   const apiUrl = (path) => `${API_BASE}${path}`;
 
   // --- PRIVACY SHIELD: KICK OUT UNAUTHENTICATED USERS ---
-  const apiKey = localStorage.getItem("api_key");
-  if (!apiKey && window.location.pathname === "/dashboard") {
-      window.location.href = "/"; 
+  // --- PRIVACY SHIELD: KICK OUT UNAUTHENTICATED USERS ---
+  // Safely grab the key and strip accidental quotes
+  const rawKey = localStorage.getItem("api_key") || localStorage.getItem("apiKey") || "";
+  const apiKey = rawKey.replace(/^"|"$/g, ''); 
+
+  if (!apiKey && window.location.pathname.includes("/dashboard")) {
+      window.location.href = "/login"; 
   }
 
   // -----------------------------
@@ -1493,7 +1497,6 @@ setLivePill(liveConnected);
   }
 
   async function fetchJson(url, kind = "results") {
-    // Abort previous same-kind request
     if (kind === "results") abortIfActive(resultsAbort);
     if (kind === "history") abortIfActive(historyAbort);
 
@@ -1509,9 +1512,16 @@ setLivePill(liveConnected);
         signal: controller.signal,
         headers: { 
             "Accept": "application/json",
-            "X-API-Key": apiKey || "" // Send your private token to the backend
+            "X-API-Key": apiKey 
         },
       });
+
+      // Safely handle rejection without an infinite loop
+      if (res.status === 401 || res.status === 403) {
+          console.warn("API Key rejected. Please log in again.");
+          if (typeof logoutUser === 'function') logoutUser();
+          return;
+      }
 
       if (!res.ok) {
         const txt = await res.text().catch(() => "");
@@ -2194,7 +2204,14 @@ function renderSelfTest(data) {
 async function fetchSelfTest(run = false) {
   try {
     const url = run ? apiUrl(`/api/selftest/run?t=${Date.now()}`) : apiUrl(`/api/selftest?t=${Date.now()}`);
-    const res = await fetch(url, { method: run ? "POST" : "GET", cache: "no-store" });
+    const res = await fetch(url, { 
+        method: run ? "POST" : "GET", 
+        cache: "no-store",
+        headers: {
+            "Accept": "application/json",
+            "X-API-Key": apiKey // Fix: Now it properly sends the key!
+        }
+    });
     const data = await res.json();
     renderSelfTest(data);
 
