@@ -30,8 +30,8 @@
   const apiKey = rawKey.replace(/^"|"$/g, '').replace(/^Bearer /i, '').trim(); 
 
   if (!apiKey && window.location.pathname.includes("/dashboard")) {
-      console.warn("No API Key found. Dashboard will load but show authentication errors.");
-      // FIX: Removed the automatic redirect to stop the infinite loop!
+      // The bouncer is back! Kick empty sessions to the login screen.
+      window.location.href = "/login"; 
   }
 
   // -----------------------------
@@ -1519,16 +1519,12 @@ setLivePill(liveConnected);
 
       // Safely handle rejection without an infinite loop
       // Safely handle rejection without an infinite loop
+      // Safely handle rejection without an infinite loop
       if (res.status === 401 || res.status === 403) {
-          console.warn("API Key rejected by server.");
-          const alertBox = document.getElementById("alertBox");
-          if (alertBox) {
-              alertBox.innerHTML = `⚠️ Authentication Error: Your session is invalid or missing. <a href="/login" style="color:#ffcc00; text-decoration:underline;">Click here to log in</a>.`;
-              alertBox.style.borderColor = "rgba(209,31,31,0.55)";
-              alertBox.style.background = "rgba(209,31,31,0.12)";
-          }
-          stopFetchLoop(); // Stop hammering the server
-          return null; // Return null to prevent crashes, but DO NOT redirect
+          console.warn("API Key rejected by server. Clearing session.");
+          localStorage.removeItem("api_key"); // Wipe the bad key
+          window.location.href = "/login"; // Kick them out instantly
+          return null; 
       }
 
       if (!res.ok) {
