@@ -1,6 +1,19 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script>
+        (function() {
+            var rawKey = localStorage.getItem("api_key") || localStorage.getItem("apiKey") || "";
+            var cleanKey = rawKey.replace(/^"|"$/g, '').trim();
+            if (!cleanKey) {
+                window.location.replace("/login");
+            }
+        })();
+    </script>
+    
+    ```
+
+
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ModelShift-Lite Dashboard</title>
