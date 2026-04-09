@@ -293,9 +293,15 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 @app.post("/api/auth/login")
 def login_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()
-    if not db_user: raise HTTPException(status_code=400, detail="Account doesn't exist")
-    if not bcrypt.checkpw(user.password.encode('utf-8'), db_user.hashed_password.encode('utf-8')):
-        raise HTTPException(status_code=400, detail="Invalid Password")
+    if not db_user or not bcrypt.checkpw(user.password.encode('utf-8'), db_user.hashed_password.encode('utf-8')):
+        raise HTTPException(status_code=400, detail="Account doesn't exist or Invalid Password")
+        
+    # --- FIX: Auto-patch old legacy accounts with a new API key ---
+    if not getattr(db_user, "api_key", None):
+        db_user.api_key = generate_api_key()
+        db.commit()
+        get_workspace(db_user.api_key) # Initialize their private folder
+        
     return {"message": "Auth successful", "email": db_user.email, "api_key": db_user.api_key}
 
 @app.post("/api/v1/sdk_login")
@@ -303,6 +309,13 @@ def sdk_login_endpoint(credentials: SDKLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == credentials.email).first()
     if not user or not bcrypt.checkpw(credentials.password.encode('utf-8'), user.hashed_password.encode('utf-8')):
         raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+    # --- FIX: Auto-patch old legacy accounts for the Python SDK too ---
+    if not getattr(user, "api_key", None):
+        user.api_key = generate_api_key()
+        db.commit()
+        get_workspace(user.api_key)
+        
     return {"api_key": user.api_key}
 
 # -------------------------------------------------------------------
