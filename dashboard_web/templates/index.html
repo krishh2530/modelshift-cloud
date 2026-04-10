@@ -1,19 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <script>
-        (function() {
-            var rawKey = localStorage.getItem("api_key") || localStorage.getItem("apiKey") || "";
-            var cleanKey = rawKey.replace(/^"|"$/g, '').trim();
-            if (!cleanKey) {
-                window.location.replace("/login");
-            }
-        })();
-    </script>
-    
-    ```
-
-
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ModelShift-Lite Dashboard</title>
@@ -22,6 +9,7 @@
 </head>
 
 <body data-page="dash">
+
   <!-- Top Header -->
   <header class="topbar">
     <div class="topbar__left">
@@ -37,10 +25,12 @@
         <span class="livepill__dot"></span>
         <span class="livepill__text">LIVE</span>
       </div>
+
       <div class="clock" id="clockText">--:--:--</div>
+
       <button onclick="logoutUser()" class="btn btn-outline" style="margin-left: 10px;">
-    Log Out
-    </button>
+        Log Out
+      </button>
     </div>
   </header>
 
@@ -65,8 +55,8 @@
       </div>
     </div>
 
+    <!-- Controls -->
     <div class="metastrip__row metastrip__row--cards">
-      <!-- Left: run meta -->
       <div class="panel panel--meta">
         <div class="panel__title">RUN META</div>
         <div class="panel__body monosmall">
@@ -76,7 +66,9 @@
             <span class="muted">/ PREV:</span>
             <span id="prevIdText">—</span>
           </div>
+
           <div class="sp8"></div>
+
           <div>
             <span class="muted">GENERATED:</span>
             <span id="latestGeneratedText">—</span>
@@ -86,9 +78,10 @@
         </div>
       </div>
 
-      <!-- Right: controls (DASHBOARD ONLY) -->
       <div class="panel panel--controls" id="dashControls">
         <div class="controls">
+
+          <!-- Zoom -->
           <div class="controlgroup">
             <div class="controlgroup__label">ZOOM</div>
             <button class="btn btn--square" id="zoomMinus">−</button>
@@ -97,6 +90,7 @@
             <div class="controlgroup__value" id="zoomValue">3</div>
           </div>
 
+          <!-- Speed -->
           <div class="controlgroup">
             <div class="controlgroup__label">SPEED</div>
             <button class="btn btn--square" id="speedMinus">−</button>
@@ -106,18 +100,19 @@
             <div class="controlgroup__sub" id="fpsText">— FPS</div>
           </div>
 
+          <!-- Actions -->
           <div class="controlgroup controlgroup--actions">
             <button class="btn btn--primary" id="playBtn">PLAY</button>
             <button class="btn" id="resetBtn">RESET</button>
           </div>
+
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Main content -->
+  <!-- Main -->
   <main class="wrap">
-    <!-- DASH -->
     <section class="page active" id="page-dash">
       <h1 class="h1">| DASHBOARD</h1>
 
@@ -125,8 +120,12 @@
         <div class="block__head">
           <div class="block__title">LATEST RUN</div>
           <div class="block__actions">
-            <button class="btn btn--primary" id="viewDatasetBtn" style="display:none; border-color: rgba(209,31,31,0.65); background: rgba(209,31,31,0.15); color: #ffb3b3;">VIEW DATASET</button>
-            <button class="btn btn--primary" id="exportBtn">EXPORT REPORT</button>
+            <button class="btn btn--primary" id="viewDatasetBtn" style="display:none;">
+              VIEW DATASET
+            </button>
+            <button class="btn btn--primary" id="exportBtn">
+              EXPORT REPORT
+            </button>
           </div>
         </div>
 
@@ -135,189 +134,7 @@
           <div class="chartnote" id="latestChartNote">—</div>
         </div>
 
-        <div class="cards4">
-          <div class="kpi">
-            <div class="kpi__k">CLEAN HEALTH</div>
-            <div class="kpi__v" id="latestCleanHealth">—</div>
-          </div>
-          <div class="kpi kpi--warn">
-            <div class="kpi__k">DRIFTED HEALTH</div>
-            <div class="kpi__v" id="latestDriftedHealth">—</div>
-          </div>
-          <div class="kpi">
-            <div class="kpi__k">PRED KS (DRIFT)</div>
-            <div class="kpi__v" id="latestPredKs">—</div>
-          </div>
-          <div class="kpi">
-            <div class="kpi__k">Δ ENTROPY</div>
-            <div class="kpi__v" id="latestDeltaEntropy">—</div>
-          </div>
-        </div>
-
-        <div class="strip" id="latestMostDrifted">
-          MOST DRIFTED FEATURE (LAST WINDOW): —
-        </div>
-
-        <!-- ✅ NEW: Evaluation metrics (Latest) injected here by app.js -->
-        <div class="sp8"></div>
-        <div class="hint">
-          Evaluation metrics (Accuracy / F1 / ROC-AUC / RMSE etc.) appear here when labels are available in the dataset.
-        </div>
-        <div class="sp8"></div>
         <div id="evalLatestBox"></div>
-      </div>
-
-      <div class="block">
-        <div class="block__title">PREVIOUS RUN</div>
-        <div class="chartbox">
-          <canvas id="chartPrevious"></canvas>
-          <div class="chartnote" id="prevChartNote">—</div>
-        </div>
-
-        <div class="cards4">
-          <div class="kpi">
-            <div class="kpi__k">CLEAN HEALTH</div>
-            <div class="kpi__v" id="prevCleanHealth">—</div>
-          </div>
-          <div class="kpi">
-            <div class="kpi__k">DRIFTED HEALTH</div>
-            <div class="kpi__v" id="prevDriftedHealth">—</div>
-          </div>
-          <div class="kpi">
-            <div class="kpi__k">PRED KS</div>
-            <div class="kpi__v" id="prevPredKs">—</div>
-          </div>
-          <div class="kpi">
-            <div class="kpi__k">Δ ENTROPY</div>
-            <div class="kpi__v" id="prevDeltaEntropy">—</div>
-          </div>
-        </div>
-
-        <!-- ✅ NEW: Evaluation metrics (Previous) injected here by app.js -->
-        <div class="sp8"></div>
-        <div id="evalPrevBox"></div>
-      </div>
-
-      <div class="block">
-        <div class="block__title">PERFORMANCE LEDGER</div>
-        <div class="tablewrap">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>GENERATED_AT</th>
-                <th>RUN_ID</th>
-                <th>STATUS</th>
-                <th>DRIFTED_HEALTH</th>
-                <th>PRED_KS</th>
-              </tr>
-            </thead>
-            <tbody id="ledgerBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- ANALYSIS -->
-    <section class="page" id="page-analysis">
-      <h1 class="h1">| ANALYSIS</h1>
-
-      <div class="block">
-        <div class="block__title">INPUTS (PROOF)</div>
-        <div class="codebox">
-          <pre id="analysisJson">Loading…</pre>
-        </div>
-
-        <div class="hint">
-          This page shows the exact JSON used by the UI. If any KPI looks “wrong”, compare it here first.
-        </div>
-      </div>
-    </section>
-
-    <!-- ALERTS -->
-    <section class="page" id="page-alerts">
-      <h1 class="h1">| ALERTS</h1>
-      <div class="block">
-        <div class="alertbox" id="alertBox">Loading…</div>
-      </div>
-    </section>
-
-    <!-- CONFIG -->
-    <section class="page" id="page-config">
-      <h1 class="h1">| CONFIG</h1>
-
-      <div class="block">
-        <div class="block__title">UI</div>
-        <div class="configrow">
-          <button class="btn" id="themeBtn">TOGGLE THEME</button>
-
-          <label class="check">
-            <input type="checkbox" id="syncAxesChk" checked />
-            <span>SYNC AXES (LATEST + PREV)</span>
-          </label>
-
-          <label class="check">
-            <input type="checkbox" id="loopChk" checked />
-            <span>LOOP PLAYBACK</span>
-          </label>
-        </div>
-
-        <div class="hint">NOTE: This only changes dashboard visualization, not model behavior.</div>
-      </div>
-
-      <div class="block">
-        <div class="block__title">ABOUT</div>
-        <div class="about">
-          <p><b>ModelShift-Lite</b> monitors an ML model in production and flags drift by comparing a <b>baseline</b> distribution vs <b>live</b> data.</p>
-          <ul>
-            <li><b>Clean Health</b>: stability score when live resembles baseline.</li>
-            <li><b>Drifted Health</b>: stability score under detected shift.</li>
-            <li><b>PRED_KS</b>: KS distance on prediction distribution (higher = more drift).</li>
-            <li><b>Δ Entropy</b>: change in entropy between baseline and live.</li>
-            <li><b>Most Drifted Feature</b>: feature with highest KS distance in last window.</li>
-            <li><b>Evaluation Metrics</b>: Accuracy / Precision / Recall / F1 / ROC-AUC / RMSE etc. (requires ground-truth labels).</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- HISTORY -->
-    <section class="page" id="page-history">
-      <h1 class="h1">| HISTORY</h1>
-
-      <div class="block">
-        <div class="block__head">
-          <div class="block__title">SAVED RUNS</div>
-          <div class="block__actions">
-            <button class="btn" id="clearHistoryBtn">REFRESH HISTORY</button>
-          </div>
-        </div>
-
-        <div class="hint">
-          History is fetched from the server (<span class="muted">dashboard_web/data/runs</span>) using <span class="muted">/api/history</span>.
-          It shows previous RUN_IDs with their generated timestamps and KPIs.
-        </div>
-
-        <div class="tablewrap" style="margin-top:10px;">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>SAVED_AT</th>
-                <th>GENERATED_AT</th>
-                <th>RUN_ID</th>
-                <th>STATUS</th>
-                <th>CLEAN</th>
-                <th>DRIFTED</th>
-                <th>PRED_KS</th>
-                <th>ΔENTROPY</th>
-              </tr>
-            </thead>
-            <tbody id="historyBody"></tbody>
-          </table>
-        </div>
-
-        <div class="hint" style="margin-top:10px;">
-          Tip: This will show 2 rows right now (latest + previous). As you generate more runs, it will grow automatically.
-        </div>
       </div>
     </section>
   </main>
@@ -328,24 +145,9 @@
       <div class="navbtn__icon">▦</div>
       <div class="navbtn__label">DASH</div>
     </button>
-    <button class="navbtn" data-page="analysis">
-      <div class="navbtn__icon">▤</div>
-      <div class="navbtn__label">ANALYSIS</div>
-    </button>
-    <button class="navbtn" data-page="alerts">
-      <div class="navbtn__icon">◌</div>
-      <div class="navbtn__label">ALERTS</div>
-    </button>
-    <button class="navbtn" data-page="config">
-      <div class="navbtn__icon">⚙</div>
-      <div class="navbtn__label">CONFIG</div>
-    </button>
-    <button class="navbtn" data-page="history">
-      <div class="navbtn__icon">⧉</div>
-      <div class="navbtn__label">HISTORY</div>
-    </button>
   </nav>
 
   <script defer src="{{ url_for('static', path='app.js') }}?v=4.3"></script>
+
 </body>
 </html>
