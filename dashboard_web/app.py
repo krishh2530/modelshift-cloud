@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 from contextlib import asynccontextmanager
 
 from fastapi.security import APIKeyHeader
-from fastapi import Security, FastAPI, HTTPException, Query, Response, Depends, BackgroundTasks
+from fastapi import Security, FastAPI, HTTPException, Query, Response, Depends, BackgroundTasks, Cookie
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -279,31 +279,41 @@ def get_user_from_query(api_key: str = Query(None), db: Session = Depends(get_db
     return user
 
 @app.post("/api/auth/signup")
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
+def create_user(user: UserCreate, response: Response, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == user.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
     salt = bcrypt.gensalt()
-    hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), salt).decode('utf-8') 
+    hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), salt).decode('utf-8')
     new_user = User(email=user.email, hashed_password=hashed_password, api_key=generate_api_key())
     db.add(new_user)
     db.commit()
-    get_workspace(new_user.api_key) # Init workspace
+    get_workspace(new_user.api_key)
+    response.set_cookie(
+        key="ms_session", value=new_user.api_key,
+        httponly=True, samesite="lax", secure=True, max_age=86400 * 30
+    )
     return {"message": "User created", "email": new_user.email, "api_key": new_user.api_key}
 
 @app.post("/api/auth/login")
-def login_user(user: UserCreate, db: Session = Depends(get_db)):
+def login_user(user: UserCreate, response: Response, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()
     if not db_user or not bcrypt.checkpw(user.password.encode('utf-8'), db_user.hashed_password.encode('utf-8')):
         raise HTTPException(status_code=400, detail="Account doesn't exist or Invalid Password")
-        
-    # --- FIX: Auto-patch old legacy accounts with a new API key ---
+
     if not getattr(db_user, "api_key", None):
         db_user.api_key = generate_api_key()
         db.commit()
-        get_workspace(db_user.api_key) # Initialize their private folder
-        
-    return {"message": "Auth successful", "email": db_user.email, "api_key": db_user.api_key}
+        get_workspace(db_user.api_key)
 
+    response.set_cookie(
+        key="ms_session", value=db_user.api_key,
+        httponly=True, samesite="lax", secure=True, max_age=86400 * 30
+    )
+    return {"message": "Auth successful", "email": db_user.email, "api_key": db_user.api_key}
+@app.post("/api/auth/logout")
+def logout_user(response: Response):
+    response.delete_cookie("ms_session", samesite="lax", secure=True)
+    return {"message": "Logged out"}
 @app.post("/api/v1/sdk_login")
 def sdk_login_endpoint(credentials: SDKLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == credentials.email).first()
@@ -551,7 +561,14 @@ def view_dataset(run_id: str, user: User = Depends(get_user_from_query)):
 @app.get("/", response_class=HTMLResponse)
 def landing_page(request: Request): return templates.TemplateResponse(request=request, name="home.html")
 @app.get("/dashboard", response_class=HTMLResponse)
-def dashboard_page(request: Request): return templates.TemplateResponse(request=request, name="index.html")
+def dashboard_page(request: Request, ms_session: Optional[str] = Cookie(default=None), db: Session = Depends(get_db)):
+    if not ms_session:
+        return RedirectResponse(url="/login", status_code=302)
+    user = db.query(User).filter(User.api_key == ms_session).first()
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    return templates.TemplateResponse(request=request, name="index.html")
+
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request): return templates.TemplateResponse(request=request, name="login.html")
 @app.get("/signup", response_class=HTMLResponse)

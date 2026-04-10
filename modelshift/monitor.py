@@ -35,8 +35,6 @@ def init(api_key: str, dashboard_url: str = "http://127.0.0.1:8000"):
     # This automatically adds /api/v1/track to whatever URL the user provides
     _CLOUD_CONFIG["endpoint"] = f"{dashboard_url.rstrip('/')}/api/v1/track"
     print(f"[✓] ModelShift SDK Authenticated. Cloud sync enabled.")
-import requests
-
 def login(email: str, password: str, dashboard_url: str = "http://127.0.0.1:8000"):
     """Authenticates the user and automatically configures the API Key."""
     print(f"🔐 Authenticating '{email}' with ModelShift Cloud...")
@@ -265,10 +263,6 @@ class ModelMonitor:
             return None
 
         try:
-            import requests
-            import uuid
-            from datetime import datetime, timezone
-
             feat_drift = getattr(self, 'feature_drift_results', {})
             if not feat_drift:
                 feat_drift = {}

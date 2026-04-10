@@ -1,3 +1,4 @@
+import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -5,8 +6,8 @@ from email.mime.multipart import MIMEMultipart
 # ==========================================
 # ⚠️ REPLACE THESE WITH YOUR CREDENTIALS
 # ==========================================
-SENDER_EMAIL = "YOUR_GMAIL@gmail.com" 
-APP_PASSWORD = "YOUR_16_LETTER_APP_PASSWORDc" 
+SENDER_EMAIL = os.environ.get("SMTP_EMAIL", "")
+APP_PASSWORD = os.environ.get("SMTP_APP_PASSWORD", "") 
 # ==========================================
 
 def send_critical_alert(recipient_email: str, run_id: str, feature: str, ks_score: float, health: float):

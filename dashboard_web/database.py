@@ -1,9 +1,13 @@
+import os
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base
 import secrets
 
 # Make sure to replace YOUR_ACTUAL_PASSWORD!
-SQLALCHEMY_DATABASE_URL = "postgresql://neondb_owner:npg_wBGIHVX57uQp@ep-blue-bonus-a4mv4f1l.us-east-1.aws.neon.tech/neondb?sslmode=require"
+SQLALCHEMY_DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql://neondb_owner:npg_wBGIHVX57uQp@ep-blue-bonus-a4mv4f1l.us-east-1.aws.neon.tech/neondb?sslmode=require"
+)
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

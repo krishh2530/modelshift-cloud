@@ -2202,26 +2202,30 @@ clearHistoryBtn?.addEventListener("click", async () => {
   }
 
   document.addEventListener("DOMContentLoaded", init);
+
+  // Expose internals so global helpers below can use them
+  window._msCtx = { apiUrl, apiKey, alertBox, selfTestJson };
 })();
 function renderSelfTest(data) {
+  const { selfTestJson } = window._msCtx || {};
   if (!selfTestJson) return;
   selfTestJson.textContent = JSON.stringify(data || {}, null, 2);
 }
 
 async function fetchSelfTest(run = false) {
+  const { apiUrl, apiKey, alertBox } = window._msCtx || {};
+  if (!apiUrl) return;
   try {
-    const url = run ? apiUrl(`/api/selftest/run?t=${Date.now()}`) : apiUrl(`/api/selftest?t=${Date.now()}`);
-    const res = await fetch(url, { 
-        method: run ? "POST" : "GET", 
-        cache: "no-store",
-        headers: {
-            "Accept": "application/json",
-            "X-API-Key": apiKey // Fix: Now it properly sends the key!
-        }
+    const url = run
+      ? apiUrl(`/api/selftest/run?t=${Date.now()}`)
+      : apiUrl(`/api/selftest?t=${Date.now()}`);
+    const res = await fetch(url, {
+      method: run ? "POST" : "GET",
+      cache: "no-store",
+      headers: { "Accept": "application/json", "X-API-Key": apiKey || "" },
     });
     const data = await res.json();
     renderSelfTest(data);
-
     if (alertBox && run) {
       alertBox.textContent = data?.ok ? "INFO: Self-test passed ✅" : "WARNING: Self-test failed ❌";
     }
@@ -2229,15 +2233,16 @@ async function fetchSelfTest(run = false) {
     renderSelfTest({ ok: false, message: `Self-test fetch failed: ${String(e)}` });
   }
 }
-function logoutUser() {
-    // Clear the stored credentials
-    localStorage.removeItem("api_key"); 
-    localStorage.removeItem("email");
-    // Kick them back to the login page
-    window.location.href = "/login";
+
+async function logoutUser() {
+  try {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+  } catch (_) {}
+  localStorage.removeItem("api_key");
+  localStorage.removeItem("email");
+  window.location.href = "/login";
 }
 
-
 function toggleTheme() {
-    document.body.classList.toggle("light-theme");
+  document.body.classList.toggle("light-theme");
 }
