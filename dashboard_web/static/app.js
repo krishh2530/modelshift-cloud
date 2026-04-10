@@ -23,16 +23,8 @@
   const API_BASE = String(window.MODELSHIFT_API_BASE || "").replace(/\/+$/, "");
   const apiUrl = (path) => `${API_BASE}${path}`;
 
-  // --- PRIVACY SHIELD: KICK OUT UNAUTHENTICATED USERS ---
-  // --- PRIVACY SHIELD: KICK OUT UNAUTHENTICATED USERS ---
-  // Safely grab the key and strip accidental quotes
   const rawKey = localStorage.getItem("api_key") || localStorage.getItem("apiKey") || localStorage.getItem("token") || "";
-  const apiKey = rawKey.replace(/^"|"$/g, '').replace(/^Bearer /i, '').trim(); 
-
-  if (!apiKey && window.location.pathname.includes("/dashboard")) {
-      // The bouncer is back! Kick empty sessions to the login screen.
-      window.location.href = "/login"; 
-  }
+  const apiKey = rawKey.replace(/^"|"$/g, '').replace(/^Bearer /i, '').trim();
 
   // -----------------------------
   // Helpers
@@ -260,6 +252,7 @@
     alerts: el("page-alerts"),
     config: el("page-config"),
     history: el("page-history"),
+    profile: el("page-profile"),
   };
 
   // -----------------------------
@@ -1547,12 +1540,16 @@ async function fetchResults() {
 
     // ✅ ADD THIS BLOCK HERE
     if (!data.latest || Object.keys(data.latest).length === 0) {
-      const exportBtn = document.getElementById("exportBtn");
+      setLivePill(false);
       if (exportBtn) {
         exportBtn.disabled = true;
-        exportBtn.innerText = "No data to export";
+        exportBtn.textContent = "No data to export";
       }
-      return; 
+      if (runIdText) runIdText.textContent = "—";
+      if (statusBadge) setStatusBadge("WAITING");
+      if (analysisJson) analysisJson.textContent = "No runs yet. Run the Python pipeline to beam data here.";
+      if (alertBox) alertBox.textContent = "INFO: No data received yet. Run 3_drift_simulator.py or 2_test_live_pipeline.py to push a run.";
+      return;
     }
 
     // ✅ only runs if data exists
