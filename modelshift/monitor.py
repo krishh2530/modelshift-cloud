@@ -361,7 +361,7 @@ class ModelMonitor:
             }
 
             print(f"[~] Beaming data to {endpoint}...")
-            response = requests.post(endpoint, json=payload, headers=headers, timeout=10)
+            response = requests.post(endpoint, json=payload, headers=headers, timeout=120)
             
             if response.status_code == 403:
                 print("[!] CLOUD REJECTED DATA: Invalid API Key.")
