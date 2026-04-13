@@ -1,21 +1,297 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>ModelShift | Monitor Your AI</title>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0b0c0d; color: white; text-align: center; padding: 50px; }
-        .btn { background: #d11f1f; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 10px; display: inline-block; font-weight: bold;}
-        .btn-outline { background: transparent; border: 2px solid #d11f1f; }
-    </style>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>ModelShift | Monitor Your AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-container": "#1e2022",
+            "surface": "#121316",
+            "on-secondary": "#2d3137",
+            "surface-container-highest": "#343538",
+            "primary-fixed-dim": "#ffb3b0",
+            "surface-dim": "#121316",
+            "surface-container-lowest": "#0d0e11",
+            "secondary": "#c3c6ce",
+            "on-surface": "#e3e2e5",
+            "primary-container": "#ff5358",
+            "surface-container-high": "#292a2d",
+            "on-surface-variant": "#e8bcba",
+            "outline-variant": "#5e3f3d",
+            "secondary-container": "#43474e",
+            "primary": "#ffb3b0",
+            "background": "#121316",
+            "surface-bright": "#38393c",
+            "surface-container-low": "#1a1c1e",
+            "surface-variant": "#343538",
+            "outline": "#af8785",
+            "on-primary": "#680010",
+            "on-background": "#e3e2e5",
+            "on-secondary-container": "#b2b5bd",
+          },
+          borderRadius: {
+            "DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"
+          },
+          fontFamily: {
+            "headline": ["Space Grotesk"],
+            "body": ["Space Grotesk"],
+            "label": ["Space Grotesk"]
+          }
+        },
+      }
+    }
+  </script>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .scanline-overlay {
+      background: linear-gradient(rgba(255,255,255,0.03) 50%, transparent 50%);
+      background-size: 100% 4px;
+      pointer-events: none;
+    }
+    .chamfer-card {
+      clip-path: polygon(0 0, 95% 0, 100% 5%, 100% 100%, 5% 100%, 0 95%);
+    }
+    .chamfer-btn {
+      clip-path: polygon(10px 0%, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0% 10px);
+    }
+    .voltage-text {
+      text-shadow: 0 0 10px rgba(255,30,60,0.6);
+    }
+    .glow-border {
+      box-shadow: inset 0 0 1px 1px rgba(255,30,60,0.15);
+    }
+    body { min-height: max(884px, 100dvh); }
+  </style>
 </head>
-<body>
-    <h1>Welcome to ModelShift Lite</h1>
-    <p>The ultimate predictive maintenance and drift monitoring SaaS.</p>
-    
-    <div style="margin-top: 40px;">
-        <a href="/login" class="btn">Log In</a>
-        <a href="/signup" class="btn btn-outline">Sign Up</a>
+
+<body class="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container min-h-screen flex flex-col">
+
+  <!-- CRT Overlay -->
+  <div class="fixed inset-0 scanline-overlay z-[100] opacity-40"></div>
+
+  <!-- Header -->
+  <header class="bg-[#121316] dark:bg-[#0d0e11] rounded-none w-full border-b-[0.5px] border-[#ff1e3c]/20 z-50 sticky top-0">
+    <div class="flex justify-between items-center w-full px-6 py-4">
+      <div class="flex items-center gap-4">
+        <span class="material-symbols-outlined text-[#ff1e3c]">terminal</span>
+        <h1 class="text-lg font-black tracking-widest text-[#ff1e3c] font-['Space_Grotesk'] uppercase">MODEL_SHIFT // TERMINAL</h1>
+      </div>
+      <nav class="flex gap-4 items-center">
+        <a href="/login"
+          class="chamfer-btn font-['Space_Grotesk'] uppercase tracking-[0.2em] text-xs font-bold px-5 py-2 border border-[#ff1e3c]/50 text-[#ffb3b0] hover:bg-[#ff1e3c]/20 transition-all">
+          LOG_IN
+        </a>
+        <a href="/signup"
+          class="chamfer-btn font-['Space_Grotesk'] uppercase tracking-[0.2em] text-xs font-bold px-5 py-2 bg-[#ff1e3c]/20 border border-[#ff1e3c] text-white hover:bg-[#ff1e3c]/40 transition-all">
+          SIGN_UP
+        </a>
+      </nav>
     </div>
+  </header>
+
+  <main class="flex-grow">
+
+    <!-- Hero -->
+    <section class="relative h-[751px] w-full flex items-center justify-center overflow-hidden">
+      <div class="absolute inset-0 z-0">
+        <img
+          alt="Dark cyberpunk industrial landscape"
+          class="w-full h-full object-cover grayscale brightness-[0.4] contrast-125"
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWcaDLoBwXpbs22oeod0rqcqaGosSGUWH7wEtPZZC4_fxkHf3b62GccKd8sluTsTeyDfLwaN5SbvyPqvhAEC5CT1aal1ks17jtTHVUPuHG8yqxdcTu5T4Idwh7GacxXCsgdFr9VSo6IfmQYxkv1s9c4JoFqNuKVD1-xAiiNTEZkz7o5v_hKYDtMlULqH7BS8uYZa0kczYGuGRTdrtQ2ZaXo9W0uwX3PGUXaPjN7As4BzWr3LGVMbq_2owltCdJdz-N-o4ehEdbwfY"/>
+        <div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-surface/80"></div>
+      </div>
+
+      <div class="relative z-10 text-center px-4 max-w-7xl mx-auto">
+        <div class="inline-block mb-4 px-3 py-1 bg-primary/10 border border-primary/20 text-primary text-[10px] tracking-[0.4em] font-bold uppercase">
+          SYS.LOG // ML_DRIFT_MONITORING_ACTIVE
+        </div>
+        <h2 class="text-6xl md:text-9xl font-black tracking-[-0.05em] uppercase leading-none voltage-text text-primary-fixed-dim italic">
+          WELCOME TO<br/>
+          <span class="text-white brightness-150">MODELSHIFT</span>
+        </h2>
+        <div class="mt-8 flex flex-col md:flex-row items-center justify-center gap-6">
+          <div class="h-[1px] w-24 bg-primary/40 hidden md:block"></div>
+          <p class="text-on-surface-variant font-label text-sm md:text-base tracking-[0.15em] max-w-xl uppercase font-bold">
+            Real-time predictive maintenance and ML drift monitoring. Detect sensor failures before they happen.
+          </p>
+          <div class="h-[1px] w-24 bg-primary/40 hidden md:block"></div>
+        </div>
+        <div class="mt-10 flex gap-4 justify-center">
+          <a href="/signup" class="chamfer-btn font-['Space_Grotesk'] uppercase tracking-[0.25em] text-sm font-black px-8 py-4 bg-[#ff1e3c] text-white hover:bg-[#ff1e3c]/80 transition-all voltage-text">
+            START_MONITORING
+          </a>
+          <a href="/login" class="chamfer-btn font-['Space_Grotesk'] uppercase tracking-[0.25em] text-sm font-black px-8 py-4 border border-[#ff1e3c]/60 text-[#ffb3b0] hover:bg-[#ff1e3c]/10 transition-all">
+            ACCESS_TERMINAL
+          </a>
+        </div>
+      </div>
+
+      <!-- Corner reticles -->
+      <div class="absolute top-10 left-10 w-12 h-12 border-t-2 border-l-2 border-primary/40"></div>
+      <div class="absolute top-10 right-10 w-12 h-12 border-t-2 border-r-2 border-primary/40"></div>
+      <div class="absolute bottom-10 left-10 w-12 h-12 border-b-2 border-l-2 border-primary/40"></div>
+      <div class="absolute bottom-10 right-10 w-12 h-12 border-b-2 border-r-2 border-primary/40"></div>
+    </section>
+
+    <!-- What It Does -->
+    <section class="py-24 px-6 md:px-12 bg-surface-container-lowest relative overflow-hidden">
+      <div class="absolute left-4 top-0 bottom-0 flex flex-col gap-1 opacity-20">
+        <div class="h-20 w-1 bg-on-secondary-container"></div>
+        <div class="h-4 w-1 bg-on-secondary-container"></div>
+        <div class="h-12 w-1 bg-on-secondary-container"></div>
+        <div class="h-32 w-1 bg-on-secondary-container"></div>
+        <div class="h-8 w-1 bg-on-secondary-container"></div>
+      </div>
+
+      <div class="max-w-4xl mx-auto">
+        <div class="chamfer-card bg-surface-container-low border border-primary/20 p-8 md:p-16 relative glow-border">
+          <div class="absolute top-4 right-8 text-[10px] text-primary/60 font-label tracking-widest">
+            X: 42.1 Y: 09.4 // NODE_01
+          </div>
+          <h3 class="text-2xl md:text-4xl font-black text-primary uppercase tracking-[0.15em] mb-10 font-headline border-l-4 border-primary pl-6">
+            PROJECT MANIFEST //<br/>OPERATING OVERVIEW
+          </h3>
+          <div class="space-y-8 text-on-secondary-container font-mono text-sm md:text-base leading-relaxed tracking-wide">
+            <p>
+              MODELSHIFT-LITE IS AN ML DRIFT MONITORING ENGINE BUILT FOR PRODUCTION ENVIRONMENTS.
+              ONCE YOUR MACHINE LEARNING MODEL IS DEPLOYED — ON A FACTORY FLOOR, LOCAL SERVER, OR
+              CLOUD PIPELINE — REAL-WORLD DATA SHIFTS OVER TIME. SENSORS DEGRADE. DISTRIBUTIONS
+              CHANGE. YOUR MODEL STARTS MAKING WRONG PREDICTIONS. THIS IS CALLED MODEL DRIFT.
+              INTEGRITY_CHECK: PASSED.
+            </p>
+            <p>
+              MODELSHIFT DETECTS THIS DRIFT IN REAL-TIME USING STATISTICAL TESTS (KOLMOGOROV-SMIRNOV),
+              CALCULATES A HEALTH SCORE FROM 0–100, ALERTS YOUR ENGINEERS INSTANTLY VIA EMAIL,
+              AND ISOLATES EVERY USER'S DATA SECURELY IN THEIR OWN PRIVATE WORKSPACE.
+              CONNECT YOUR PYTHON PIPELINE IN MINUTES. MONITOR FOREVER.
+            </p>
+          </div>
+          <div class="mt-12 flex items-center justify-between border-t border-primary/10 pt-6">
+            <div class="flex gap-2">
+              <div class="w-2 h-2 bg-primary"></div>
+              <div class="w-2 h-2 bg-primary/40"></div>
+              <div class="w-2 h-2 bg-primary/10"></div>
+            </div>
+            <span class="text-[10px] text-on-surface-variant font-bold tracking-[0.3em]">SECURE_FEED_ESTABLISHED</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Feature Grid -->
+    <section class="py-12 px-6 md:px-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+      <div class="md:col-span-2 bg-surface-container-high p-8 border-l border-primary/30">
+        <div class="flex justify-between mb-4">
+          <span class="text-xs font-bold text-primary tracking-widest uppercase">01 // DRIFT_DETECTION_ENGINE</span>
+          <span class="material-symbols-outlined text-primary text-sm">sensors</span>
+        </div>
+        <div class="h-40 bg-surface-dim mb-4 flex items-end p-4">
+          <div class="flex items-end gap-1 w-full h-full overflow-hidden opacity-50">
+            <div class="bg-primary w-full h-[100%]"></div>
+            <div class="bg-primary w-full h-[100%]"></div>
+            <div class="bg-primary w-full h-[98%]"></div>
+            <div class="bg-primary w-full h-[95%]"></div>
+            <div class="bg-primary w-full h-[88%]"></div>
+            <div class="bg-primary w-full h-[75%]"></div>
+            <div class="bg-primary w-full h-[55%]"></div>
+            <div class="bg-primary w-full h-[20%]"></div>
+          </div>
+        </div>
+        <p class="text-xs uppercase text-on-secondary-container tracking-widest">
+          KS-test statistical drift detection. Health score computed in real-time. Critical alerts fired instantly.
+        </p>
+      </div>
+
+      <div class="bg-surface-container-highest p-8 flex flex-col justify-between">
+        <div>
+          <h4 class="text-lg font-bold text-white uppercase tracking-tighter mb-2">MULTI-TENANT_SECURE</h4>
+          <p class="text-[10px] text-on-surface-variant leading-tight uppercase tracking-wider">
+            Every user's data is isolated in their own private workspace. API key authentication on every request.
+          </p>
+        </div>
+        <a href="/signup" class="mt-8 border border-white/20 text-white hover:bg-white hover:text-surface transition-all text-[10px] font-bold tracking-[0.3em] py-3 uppercase text-center chamfer-btn block">
+          CREATE_ACCOUNT
+        </a>
+      </div>
+
+      <!-- Three stat cards -->
+      <div class="bg-surface-container-low p-6 border border-primary/20 flex flex-col gap-2">
+        <span class="material-symbols-outlined text-primary">monitor_heart</span>
+        <h4 class="text-sm font-black text-white uppercase tracking-wider">FEATURE DRIFT</h4>
+        <p class="text-[11px] text-on-surface-variant uppercase tracking-wide leading-relaxed">
+          Per-sensor KS statistics. Identifies exactly which feature broke your model.
+        </p>
+      </div>
+      <div class="bg-surface-container-low p-6 border border-primary/20 flex flex-col gap-2">
+        <span class="material-symbols-outlined text-primary">notifications_active</span>
+        <h4 class="text-sm font-black text-white uppercase tracking-wider">EMAIL ALERTS</h4>
+        <p class="text-[11px] text-on-surface-variant uppercase tracking-wide leading-relaxed">
+          Critical drift triggers an instant email with feature name, KS score, and health index.
+        </p>
+      </div>
+      <div class="bg-surface-container-low p-6 border border-primary/20 flex flex-col gap-2">
+        <span class="material-symbols-outlined text-primary">cloud_sync</span>
+        <h4 class="text-sm font-black text-white uppercase tracking-wider">CLOUD SYNC</h4>
+        <p class="text-[11px] text-on-surface-variant uppercase tracking-wide leading-relaxed">
+          One Python call. Data beamed to your private dashboard. Persisted in NeonDB forever.
+        </p>
+      </div>
+    </section>
+
+    <!-- CTA Banner -->
+    <section class="py-16 px-6 text-center border-t border-primary/10">
+      <p class="text-[10px] tracking-[0.4em] text-primary uppercase mb-4">// READY TO CONNECT YOUR MODEL?</p>
+      <h3 class="text-3xl md:text-5xl font-black uppercase voltage-text text-primary-fixed-dim mb-8">
+        START IN UNDER 5 MINUTES
+      </h3>
+      <div class="flex gap-4 justify-center flex-wrap">
+        <a href="/signup" class="chamfer-btn font-['Space_Grotesk'] uppercase tracking-[0.25em] text-sm font-black px-10 py-4 bg-[#ff1e3c] text-white hover:bg-[#ff1e3c]/80 transition-all">
+          REGISTER_NOW
+        </a>
+        <a href="/login" class="chamfer-btn font-['Space_Grotesk'] uppercase tracking-[0.25em] text-sm font-black px-10 py-4 border border-[#ff1e3c]/60 text-[#ffb3b0] hover:bg-[#ff1e3c]/10 transition-all">
+          EXISTING_USER
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-[#0d0e11] rounded-none border-t-[0.5px] border-[#43474e] mt-auto">
+    <div class="w-full py-8 px-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+      <div class="flex flex-col gap-2">
+        <span class="text-[#ff1e3c] font-black tracking-widest text-lg uppercase voltage-text">MODELSHIFT</span>
+        <span class="font-['Space_Grotesk'] uppercase text-[10px] tracking-[0.2em] text-[#43474e]">SYS_STATUS: OPTIMAL // ML DRIFT MONITORING SAAS</span>
+      </div>
+      <div class="flex flex-col gap-4">
+        <span class="font-['Space_Grotesk'] uppercase text-[10px] tracking-[0.3em] text-[#ffb3b0] font-bold">CONNECT WITH THE TEAM:</span>
+        <div class="flex flex-wrap gap-6">
+          <a class="font-['Space_Grotesk'] uppercase text-[10px] tracking-[0.2em] text-[#ff1e3c] hover:text-[#ffb3b0] transition-colors border-b border-[#ff1e3c]/20 pb-1" href="#">[INSTAGRAM]</a>
+          <a class="font-['Space_Grotesk'] uppercase text-[10px] tracking-[0.2em] text-[#ff1e3c] hover:text-[#ffb3b0] transition-colors border-b border-[#ff1e3c]/20 pb-1" href="#">[EMAIL]</a>
+          <a class="font-['Space_Grotesk'] uppercase text-[10px] tracking-[0.2em] text-[#ff1e3c] hover:text-[#ffb3b0] transition-colors border-b border-[#ff1e3c]/20 pb-1" href="#">[LINKEDIN]</a>
+          <a class="font-['Space_Grotesk'] uppercase text-[10px] tracking-[0.2em] text-[#ff1e3c] hover:text-[#ffb3b0] transition-colors border-b border-[#ff1e3c]/20 pb-1" href="#">[PORTFOLIO]</a>
+        </div>
+      </div>
+      <div class="flex flex-col gap-1 items-end text-right">
+        <span class="font-['Space_Grotesk'] uppercase text-[10px] tracking-[0.2em] text-[#43474e]">MODELSHIFT-LITE v0.1.0</span>
+        <span class="font-['Space_Grotesk'] uppercase text-[10px] tracking-[0.2em] text-[#ff1e3c] font-bold">[SYS.OP.AUTH_REQUIRED]</span>
+        <div class="flex gap-4 mt-2">
+          <a href="/login" class="font-['Space_Grotesk'] uppercase text-[10px] tracking-[0.2em] text-[#43474e] hover:text-[#ffb3b0]">LOGIN</a>
+          <a href="/signup" class="font-['Space_Grotesk'] uppercase text-[10px] tracking-[0.2em] text-[#43474e] hover:text-[#ffb3b0]">SIGNUP</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
 </body>
 </html>
