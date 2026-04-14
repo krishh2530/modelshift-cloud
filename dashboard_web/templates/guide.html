@@ -97,6 +97,18 @@
     }
     .constraint-row { border-left: 2px solid rgba(255,30,60,0.3); padding-left: 12px; }
     body { min-height: 100dvh; }
+    @media print {
+      header, footer, .copy-btn, .chamfer-btn { display: none !important; }
+      body { background: white !important; color: black !important; }
+      .code-block { background: #f4f4f4 !important; border-color: #ccc !important; color: black !important; }
+      .code-block .kw  { color: #b00020 !important; }
+      .code-block .st  { color: #1a7a1a !important; }
+      .code-block .cm  { color: #666 !important; }
+      .code-block .fn  { color: #0055aa !important; }
+      .code-block .nm  { color: #333 !important; }
+      .voltage-text { text-shadow: none !important; color: #cc0000 !important; }
+      .scanline-overlay { display: none !important; }
+    }
   </style>
 </head>
 
@@ -413,6 +425,9 @@ monitor.<span class="fn">push</span>()
         <a href="https://pypi.org/project/modelshift/" target="_blank" class="chamfer-btn font-['Space_Grotesk'] uppercase tracking-[0.25em] text-sm font-black px-8 py-4 border border-[#ff1e3c]/60 text-[#ffb3b0] hover:bg-[#ff1e3c]/10 transition-all">
           VIEW_ON_PYPI
         </a>
+        <button onclick="downloadGuide()" class="chamfer-btn font-['Space_Grotesk'] uppercase tracking-[0.25em] text-sm font-black px-8 py-4 border border-[#ffb3b0]/40 text-[#ffb3b0] hover:bg-[#ffb3b0]/10 transition-all">
+          ↓ DOWNLOAD_PDF
+        </button>
       </div>
     </div>
 
@@ -434,6 +449,10 @@ monitor.<span class="fn">push</span>()
   </footer>
 
   <script>
+    function downloadGuide() {
+      window.print();
+    }
+
     function copyCode(btn) {
       const block = btn.parentElement;
       const text = block.innerText.replace('COPY', '').trim();
