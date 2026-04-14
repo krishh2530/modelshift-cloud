@@ -407,7 +407,9 @@ def dashboard_page(request: Request, ms_session: Optional[str] = Cookie(default=
     if not user:
         return RedirectResponse(url="/login", status_code=302)
     return templates.TemplateResponse(request=request, name="index.html")
-
+@app.get("/guide", response_class=HTMLResponse)
+def guide_page(request: Request):
+    return templates.TemplateResponse(request=request, name="guide.html")
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
     return templates.TemplateResponse(request=request, name="login.html")

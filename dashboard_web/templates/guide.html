@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>ModelShift | Integration Guide</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface": "#121316",
+            "surface-container-lowest": "#0d0e11",
+            "surface-container-low": "#1a1c1e",
+            "surface-container": "#1e2022",
+            "surface-container-high": "#292a2d",
+            "surface-container-highest": "#343538",
+            "surface-dim": "#121316",
+            "on-surface": "#e3e2e5",
+            "on-surface-variant": "#e8bcba",
+            "on-secondary-container": "#b2b5bd",
+            "primary": "#ffb3b0",
+            "primary-fixed-dim": "#ffb3b0",
+            "primary-container": "#ff5358",
+            "secondary-container": "#43474e",
+            "outline": "#af8785",
+            "outline-variant": "#5e3f3d",
+          },
+          borderRadius: { "DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px" },
+          fontFamily: { "headline": ["Space Grotesk"], "body": ["Space Grotesk"] }
+        }
+      }
+    }
+  </script>
+  <style>
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .scanline-overlay {
+      background: linear-gradient(rgba(255,255,255,0.03) 50%, transparent 50%);
+      background-size: 100% 4px;
+      pointer-events: none;
+    }
+    .chamfer-btn { clip-path: polygon(10px 0%, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0% 10px); }
+    .chamfer-card { clip-path: polygon(0 0, 97% 0, 100% 3%, 100% 100%, 3% 100%, 0 97%); }
+    .voltage-text { text-shadow: 0 0 10px rgba(255,30,60,0.6); }
+    .glow-border { box-shadow: inset 0 0 1px 1px rgba(255,30,60,0.15); }
+
+    /* Code block styling */
+    .code-block {
+      background: #0d0e11;
+      border: 1px solid rgba(255,30,60,0.2);
+      border-left: 3px solid #ff1e3c;
+      padding: 20px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      overflow-x: auto;
+      position: relative;
+    }
+    .code-block .kw  { color: #ff6b8a; font-weight: bold; }   /* keywords */
+    .code-block .st  { color: #98d982; }                       /* strings */
+    .code-block .cm  { color: #5a6a5a; font-style: italic; }   /* comments */
+    .code-block .fn  { color: #7ecfff; }                       /* functions */
+    .code-block .nm  { color: #ffb3b0; }                       /* variable names */
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255,30,60,0.15);
+      border: 1px solid rgba(255,30,60,0.3);
+      color: #ffb3b0;
+      font-size: 10px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      padding: 4px 10px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 0.2s;
+    }
+    .copy-btn:hover { background: rgba(255,30,60,0.35); }
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border: 1px solid rgba(255,30,60,0.5);
+      color: #ff1e3c;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 900;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .constraint-row { border-left: 2px solid rgba(255,30,60,0.3); padding-left: 12px; }
+    body { min-height: 100dvh; }
+  </style>
+</head>
+
+<body class="bg-surface text-on-surface font-body min-h-screen flex flex-col">
+
+  <!-- CRT overlay -->
+  <div class="fixed inset-0 scanline-overlay z-[100] opacity-30"></div>
+
+  <!-- Header -->
+  <header class="bg-[#121316] w-full border-b border-[#ff1e3c]/20 z-50 sticky top-0">
+    <div class="flex justify-between items-center w-full px-6 py-4">
+      <a href="/" class="flex items-center gap-4">
+        <span class="material-symbols-outlined text-[#ff1e3c]">terminal</span>
+        <span class="text-lg font-black tracking-widest text-[#ff1e3c] uppercase">MODEL_SHIFT // TERMINAL</span>
+      </a>
+      <nav class="flex gap-4 items-center">
+        <a href="/guide" class="font-['Space_Grotesk'] uppercase tracking-[0.2em] text-xs font-bold px-3 py-1 border-b-2 border-[#ff1e3c] text-[#ffb3b0]">GUIDE</a>
+        <a href="/login" class="chamfer-btn font-['Space_Grotesk'] uppercase tracking-[0.2em] text-xs font-bold px-5 py-2 border border-[#ff1e3c]/50 text-[#ffb3b0] hover:bg-[#ff1e3c]/20 transition-all">LOG_IN</a>
+        <a href="/signup" class="chamfer-btn font-['Space_Grotesk'] uppercase tracking-[0.2em] text-xs font-bold px-5 py-2 bg-[#ff1e3c]/20 border border-[#ff1e3c] text-white hover:bg-[#ff1e3c]/40 transition-all">SIGN_UP</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-grow max-w-4xl mx-auto w-full px-6 py-16">
+
+    <!-- Page title -->
+    <div class="mb-4">
+      <div class="inline-block px-3 py-1 bg-primary/10 border border-primary/20 text-primary text-[10px] tracking-[0.4em] font-bold uppercase mb-4">
+        SYS.DOC // INTEGRATION_MANUAL_v1.0
+      </div>
+      <h2 class="text-4xl md:text-6xl font-black uppercase voltage-text text-primary-fixed-dim leading-none">
+        INTEGRATION<br/>GUIDE
+      </h2>
+      <p class="mt-4 text-on-surface-variant text-sm tracking-widest uppercase font-bold max-w-xl">
+        Connect your trained ML model to ModelShift in under 5 minutes. No infrastructure changes required.
+      </p>
+    </div>
+
+    <div class="h-px bg-[#ff1e3c]/20 my-10"></div>
+
+    <!-- STEP 0 -->
+    <div class="mb-14">
+      <div class="flex items-center gap-4 mb-6">
+        <div class="step-badge">0</div>
+        <h3 class="text-xl font-black uppercase tracking-[0.15em] text-primary">INSTALL THE LIBRARY</h3>
+      </div>
+      <p class="text-on-surface-variant text-sm uppercase tracking-wide mb-4">
+        Install ModelShift from PyPI. Works with Python 3.8+.
+      </p>
+      <div class="code-block relative">
+        <button class="copy-btn" onclick="copyCode(this)">COPY</button>
+        <span class="nm">pip install modelshift</span>
+      </div>
+      <div class="mt-3 flex items-center gap-3 text-[11px] text-on-surface-variant uppercase tracking-widest">
+        <span class="material-symbols-outlined text-sm text-primary">open_in_new</span>
+        <a href="https://pypi.org/project/modelshift/" target="_blank" class="hover:text-primary transition-colors">
+          pypi.org/project/modelshift
+        </a>
+      </div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="mb-14">
+      <div class="flex items-center gap-4 mb-6">
+        <div class="step-badge">1</div>
+        <h3 class="text-xl font-black uppercase tracking-[0.15em] text-primary">CREATE YOUR ACCOUNT</h3>
+      </div>
+      <p class="text-on-surface-variant text-sm uppercase tracking-wide mb-6">
+        Sign up at the portal. Your API key is generated automatically and links your Python pipeline to your private dashboard.
+      </p>
+      <div class="chamfer-card bg-surface-container-low border border-primary/20 p-6 glow-border">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+          <div class="flex flex-col items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-3xl">person_add</span>
+            <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Go to /signup</span>
+          </div>
+          <div class="flex flex-col items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-3xl">lock</span>
+            <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Register email + password</span>
+          </div>
+          <div class="flex flex-col items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-3xl">key</span>
+            <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">API key auto-generated</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="mb-14">
+      <div class="flex items-center gap-4 mb-6">
+        <div class="step-badge">2</div>
+        <h3 class="text-xl font-black uppercase tracking-[0.15em] text-primary">SAVE CREDENTIALS LOCALLY</h3>
+      </div>
+      <p class="text-on-surface-variant text-sm uppercase tracking-wide mb-4">
+        Run this once. Saves credentials locally so you never type them again.
+      </p>
+      <div class="code-block relative">
+        <button class="copy-btn" onclick="copyCode(this)">COPY</button>
+<span class="kw">import</span> json, os
+
+CRED_FILE = <span class="st">"modelshift_auth.json"</span>
+
+<span class="kw">if not</span> os.path.exists(CRED_FILE):
+    json.dump({
+        <span class="st">"email"</span>: <span class="st">"your@email.com"</span>,
+        <span class="st">"password"</span>: <span class="st">"yourpassword"</span>
+    }, open(CRED_FILE, <span class="st">"w"</span>))
+
+creds = json.load(open(CRED_FILE))
+      </div>
+    </div>
+
+    <!-- STEP 3 — THE MAIN CODE -->
+    <div class="mb-14">
+      <div class="flex items-center gap-4 mb-6">
+        <div class="step-badge">3</div>
+        <h3 class="text-xl font-black uppercase tracking-[0.15em] text-primary">ADD TO YOUR NOTEBOOK / SCRIPT</h3>
+      </div>
+      <p class="text-on-surface-variant text-sm uppercase tracking-wide mb-4">
+        Paste this after your existing training code. Replace <code class="text-primary bg-surface-container-high px-1">X_train</code>, <code class="text-primary bg-surface-container-high px-1">X_live</code>, and <code class="text-primary bg-surface-container-high px-1">model</code> with your own variables.
+      </p>
+      <div class="code-block relative">
+        <button class="copy-btn" onclick="copyCode(this)">COPY</button>
+<span class="kw">import</span> <span class="nm">modelshift.monitor</span> <span class="kw">as</span> <span class="nm">ms</span>
+
+<span class="cm"># ── 1. Connect to your dashboard ──────────────────────────────────</span>
+ms.<span class="fn">login</span>(
+    email=creds[<span class="st">"email"</span>],
+    password=creds[<span class="st">"password"</span>],
+    dashboard_url=<span class="st">"https://modelshift-api.onrender.com"</span>
+)
+
+<span class="cm"># ── 2. Create monitor with your TRAINING data as baseline ─────────</span>
+<span class="cm">#    X_train must be a pandas DataFrame — features only, no target</span>
+<span class="nm">monitor</span> = ms.<span class="fn">ModelMonitor</span>(X_train)
+
+<span class="cm"># ── 3. Set baseline predictions (what model predicted on train set) ─</span>
+<span class="cm">#    For classifiers : baseline_preds = model.predict_proba(X_train)[:, 1]</span>
+<span class="cm">#    For regressors  : baseline_preds = model.predict(X_train)</span>
+monitor.<span class="fn">set_baseline_predictions</span>(baseline_preds)
+
+<span class="cm"># ── 4. Feed in your LIVE / TEST data ──────────────────────────────</span>
+<span class="cm">#    Same columns as X_train, same dtype — no target column</span>
+monitor.<span class="fn">update</span>(X_live)
+
+<span class="cm"># ── 5. Feed in live predictions ───────────────────────────────────</span>
+<span class="cm">#    live_preds = model.predict_proba(X_live)[:, 1]</span>
+monitor.<span class="fn">update_predictions</span>(live_preds)
+
+<span class="cm"># ── 6. Compute drift ──────────────────────────────────────────────</span>
+monitor.<span class="fn">compute_feature_drift</span>()
+monitor.<span class="fn">compute_prediction_drift</span>()
+
+<span class="cm"># ── 7. Beam to your dashboard ─────────────────────────────────────</span>
+monitor.<span class="fn">push</span>()
+
+<span class="kw">print</span>(<span class="st">"✅ Done! Check your dashboard."</span>)
+      </div>
+    </div>
+
+    <!-- Constraints -->
+    <div class="mb-14">
+      <div class="flex items-center gap-4 mb-6">
+        <div class="step-badge">!</div>
+        <h3 class="text-xl font-black uppercase tracking-[0.15em] text-[#ff6b8a]">IMPORTANT CONSTRAINTS</h3>
+      </div>
+      <div class="space-y-4">
+        <div class="constraint-row">
+          <p class="text-xs font-bold uppercase tracking-widest text-primary mb-1">DATA FORMAT</p>
+          <p class="text-on-surface-variant text-sm uppercase tracking-wide">
+            <code class="text-white bg-surface-container-high px-1">X_train</code> and <code class="text-white bg-surface-container-high px-1">X_live</code> must be <strong class="text-white">pandas DataFrames</strong> with identical column names. No target/label column — features only.
+          </p>
+        </div>
+        <div class="constraint-row">
+          <p class="text-xs font-bold uppercase tracking-widest text-primary mb-1">PREDICTIONS</p>
+          <p class="text-on-surface-variant text-sm uppercase tracking-wide">
+            Must be <strong class="text-white">probability values between 0 and 1</strong>. Use <code class="text-white bg-surface-container-high px-1">predict_proba(X)[:, 1]</code> for classifiers. Do NOT use raw <code class="text-white bg-surface-container-high px-1">predict()</code> for classification.
+          </p>
+        </div>
+        <div class="constraint-row">
+          <p class="text-xs font-bold uppercase tracking-widest text-primary mb-1">MINIMUM SIZE</p>
+          <p class="text-on-surface-variant text-sm uppercase tracking-wide">
+            Both datasets need at least <strong class="text-white">2 rows</strong>. Recommended: 100+ rows for statistically meaningful KS scores.
+          </p>
+        </div>
+        <div class="constraint-row">
+          <p class="text-xs font-bold uppercase tracking-widest text-primary mb-1">CALL FREQUENCY</p>
+          <p class="text-on-surface-variant text-sm uppercase tracking-wide">
+            Call <code class="text-white bg-surface-container-high px-1">monitor.push()</code> as often as you want. Every call creates a new timestamped run in your history. Dashboard shows latest + previous automatically.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- What you see -->
+    <div class="mb-14">
+      <div class="flex items-center gap-4 mb-6">
+        <div class="step-badge">4</div>
+        <h3 class="text-xl font-black uppercase tracking-[0.15em] text-primary">WHAT YOU SEE ON THE DASHBOARD</h3>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-surface-container-high p-5 border-l-2 border-primary/40">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="material-symbols-outlined text-primary text-lg">favorite</span>
+            <span class="text-xs font-black uppercase tracking-widest text-white">Health Score</span>
+          </div>
+          <p class="text-[11px] text-on-surface-variant uppercase tracking-wide leading-relaxed">
+            0–100 score. 100 = model behaves identically to training. 0 = complete distribution collapse.
+          </p>
+        </div>
+        <div class="bg-surface-container-high p-5 border-l-2 border-primary/40">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="material-symbols-outlined text-primary text-lg">sensors</span>
+            <span class="text-xs font-black uppercase tracking-widest text-white">Feature Drift Table</span>
+          </div>
+          <p class="text-[11px] text-on-surface-variant uppercase tracking-wide leading-relaxed">
+            Per-feature KS statistic and severity. Tells you exactly which sensor or variable broke your model.
+          </p>
+        </div>
+        <div class="bg-surface-container-high p-5 border-l-2 border-primary/40">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="material-symbols-outlined text-primary text-lg">show_chart</span>
+            <span class="text-xs font-black uppercase tracking-widest text-white">Evaluation Metrics</span>
+          </div>
+          <p class="text-[11px] text-on-surface-variant uppercase tracking-wide leading-relaxed">
+            Accuracy, F1, ROC-AUC, RMSE — Clean vs Drifted side by side. Degraded values highlighted in red.
+          </p>
+        </div>
+        <div class="bg-surface-container-high p-5 border-l-2 border-primary/40">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="material-symbols-outlined text-primary text-lg">notifications_active</span>
+            <span class="text-xs font-black uppercase tracking-widest text-white">Email Alerts</span>
+          </div>
+          <p class="text-[11px] text-on-surface-variant uppercase tracking-wide leading-relaxed">
+            If drift is CRITICAL, an email is fired instantly to your registered address with the fault feature and KS score.
+          </p>
+        </div>
+        <div class="bg-surface-container-high p-5 border-l-2 border-primary/40">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="material-symbols-outlined text-primary text-lg">table_view</span>
+            <span class="text-xs font-black uppercase tracking-widest text-white">Dataset Inspector</span>
+          </div>
+          <p class="text-[11px] text-on-surface-variant uppercase tracking-wide leading-relaxed">
+            15-row sample of your live vs baseline data. Drifted cells highlighted red. Private to your account only.
+          </p>
+        </div>
+        <div class="bg-surface-container-high p-5 border-l-2 border-primary/40">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="material-symbols-outlined text-primary text-lg">history</span>
+            <span class="text-xs font-black uppercase tracking-widest text-white">Run History</span>
+          </div>
+          <p class="text-[11px] text-on-surface-variant uppercase tracking-wide leading-relaxed">
+            Every push creates a permanent record in the database. Compare runs over time. Download reports.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Complete example -->
+    <div class="mb-14">
+      <div class="flex items-center gap-4 mb-6">
+        <div class="step-badge">★</div>
+        <h3 class="text-xl font-black uppercase tracking-[0.15em] text-primary">COMPLETE WORKING EXAMPLE</h3>
+      </div>
+      <p class="text-on-surface-variant text-sm uppercase tracking-wide mb-4">
+        Copy-paste ready. Works with any sklearn classifier.
+      </p>
+      <div class="code-block relative">
+        <button class="copy-btn" onclick="copyCode(this)">COPY</button>
+<span class="kw">import</span> json, os
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> RandomForestClassifier
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">import</span> <span class="nm">modelshift.monitor</span> <span class="kw">as</span> <span class="nm">ms</span>
+
+<span class="cm"># ── Your existing training code ────────────────────────────────────</span>
+df = pd.<span class="fn">read_csv</span>(<span class="st">"your_dataset.csv"</span>)
+X = df.drop(columns=[<span class="st">"target"</span>])
+y = df[<span class="st">"target"</span>]
+
+X_train, X_live, y_train, y_live = train_test_split(X, y, test_size=<span class="st">0.3</span>, random_state=<span class="st">42</span>)
+
+model = <span class="fn">RandomForestClassifier</span>()
+model.<span class="fn">fit</span>(X_train, y_train)
+
+<span class="cm"># ── ModelShift integration (add below your training code) ──────────</span>
+creds = json.load(open(<span class="st">"modelshift_auth.json"</span>))
+ms.<span class="fn">login</span>(email=creds[<span class="st">"email"</span>], password=creds[<span class="st">"password"</span>],
+         dashboard_url=<span class="st">"https://modelshift-api.onrender.com"</span>)
+
+monitor = ms.<span class="fn">ModelMonitor</span>(X_train)
+monitor.<span class="fn">set_baseline_predictions</span>(model.<span class="fn">predict_proba</span>(X_train)[:, <span class="st">1</span>])
+monitor.<span class="fn">update</span>(X_live)
+monitor.<span class="fn">update_predictions</span>(model.<span class="fn">predict_proba</span>(X_live)[:, <span class="st">1</span>])
+monitor.<span class="fn">compute_feature_drift</span>()
+monitor.<span class="fn">compute_prediction_drift</span>()
+monitor.<span class="fn">push</span>()
+
+<span class="kw">print</span>(<span class="st">"✅ Dashboard updated!"</span>)
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="chamfer-card bg-surface-container-low border border-primary/20 p-8 glow-border text-center">
+      <p class="text-[10px] tracking-[0.4em] text-primary uppercase mb-3">// READY?</p>
+      <h3 class="text-2xl font-black uppercase voltage-text text-primary-fixed-dim mb-6">
+        CREATE YOUR ACCOUNT AND START MONITORING
+      </h3>
+      <div class="flex gap-4 justify-center flex-wrap">
+        <a href="/signup" class="chamfer-btn font-['Space_Grotesk'] uppercase tracking-[0.25em] text-sm font-black px-8 py-4 bg-[#ff1e3c] text-white hover:bg-[#ff1e3c]/80 transition-all">
+          SIGN_UP_FREE
+        </a>
+        <a href="https://pypi.org/project/modelshift/" target="_blank" class="chamfer-btn font-['Space_Grotesk'] uppercase tracking-[0.25em] text-sm font-black px-8 py-4 border border-[#ff1e3c]/60 text-[#ffb3b0] hover:bg-[#ff1e3c]/10 transition-all">
+          VIEW_ON_PYPI
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-[#0d0e11] border-t border-[#43474e] mt-16">
+    <div class="w-full py-6 px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+      <span class="text-[#ff1e3c] font-black tracking-widest uppercase voltage-text">MODELSHIFT</span>
+      <span class="font-['Space_Grotesk'] uppercase text-[10px] tracking-[0.2em] text-[#43474e]">
+        MODELSHIFT-LITE v0.1.0 // ML DRIFT MONITORING
+      </span>
+      <div class="flex gap-6">
+        <a href="/" class="font-['Space_Grotesk'] uppercase text-[10px] tracking-[0.2em] text-[#43474e] hover:text-[#ffb3b0]">HOME</a>
+        <a href="/login" class="font-['Space_Grotesk'] uppercase text-[10px] tracking-[0.2em] text-[#43474e] hover:text-[#ffb3b0]">LOGIN</a>
+        <a href="/signup" class="font-['Space_Grotesk'] uppercase text-[10px] tracking-[0.2em] text-[#43474e] hover:text-[#ffb3b0]">SIGNUP</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function copyCode(btn) {
+      const block = btn.parentElement;
+      const text = block.innerText.replace('COPY', '').trim();
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'COPIED!';
+        setTimeout(() => btn.textContent = 'COPY', 2000);
+      });
+    }
+  </script>
+
+</body>
+</html>
