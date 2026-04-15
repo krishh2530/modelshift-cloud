@@ -211,10 +211,6 @@
         <div class="configrow">
           <button class="btn" id="themeBtn">TOGGLE THEME</button>
           <label class="check">
-            <input type="checkbox" id="syncAxesChk" checked />
-            <span>SYNC AXES (LATEST + PREV)</span>
-          </label>
-          <label class="check">
             <input type="checkbox" id="loopChk" checked />
             <span>LOOP PLAYBACK</span>
           </label>
@@ -299,6 +295,22 @@
             <input id="profilePhone" type="tel" placeholder="+91 XXXXX XXXXX"
               style="width:100%; background:#0f1112; border:1px solid rgba(255,255,255,0.14); color:#e9eef2; padding:10px 12px; font-family:ui-monospace,monospace; font-size:14px;" />
           </div>
+          <div>
+            <div class="panel__title" style="margin-bottom:6px;">TIMEZONE</div>
+            <select id="profileTimezone"
+              style="width:100%; background:#0f1112; border:1px solid rgba(255,255,255,0.14); color:#e9eef2; padding:10px 12px; font-family:ui-monospace,monospace; font-size:14px;">
+              <option value="Asia/Kolkata">IST — India (UTC+5:30)</option>
+              <option value="America/New_York">EST — New York (UTC-5)</option>
+              <option value="America/Los_Angeles">PST — Los Angeles (UTC-8)</option>
+              <option value="Europe/London">GMT — London (UTC+0)</option>
+              <option value="Europe/Berlin">CET — Berlin (UTC+1)</option>
+              <option value="Asia/Tokyo">JST — Tokyo (UTC+9)</option>
+              <option value="Asia/Singapore">SGT — Singapore (UTC+8)</option>
+              <option value="Australia/Sydney">AEST — Sydney (UTC+10)</option>
+              <option value="America/Chicago">CST — Chicago (UTC-6)</option>
+              <option value="UTC">UTC</option>
+            </select>
+          </div>
           <button onclick="saveProfile()" class="btn btn--primary" style="width:fit-content; padding:10px 24px;">
             SAVE PROFILE
           </button>
@@ -312,9 +324,15 @@
         <div class="block__title">SESSION</div>
         <div class="about" style="margin-bottom:8px;">Your API key links your local Python pipeline to this dashboard. Keep it private.</div>
         <div class="monosmall muted" id="profileApiKeyDisplay" style="margin-bottom:16px; word-break:break-all;">—</div>
-        <button onclick="logoutUser()" class="btn" style="border-color:rgba(209,31,31,0.6); color:#ffb3b3;">
-          LOG OUT
-        </button>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <button onclick="regenerateKey()" class="btn" style="border-color:rgba(255,170,0,0.6); color:#ffdd88;">
+            ↻ REGENERATE API KEY
+          </button>
+          <button onclick="logoutUser()" class="btn" style="border-color:rgba(209,31,31,0.6); color:#ffb3b3;">
+            LOG OUT
+          </button>
+        </div>
+        <div id="regenMsg" style="margin-top:8px; font-family:ui-monospace,monospace; font-size:12px; color:#4be28d; display:none;">✓ NEW KEY GENERATED — COPY IT ABOVE</div>
       </div>
     </section>
 
@@ -364,20 +382,40 @@
       if (emailDisp) emailDisp.textContent = email;
       if (keyDisp) keyDisp.textContent = "API_KEY: " + apiKey;
 
-      ["profileName", "profileEmail", "profileOccupation", "profilePhone"].forEach(function (id) {
+      ["profileName", "profileEmail", "profileOccupation", "profilePhone", "profileTimezone"].forEach(function (id) {
         var el = document.getElementById(id);
         if (el && profile[id]) el.value = profile[id];
       });
     });
-
+    async function regenerateKey() {
+      if (!confirm('This will invalidate your old API key. Your local_auth.json will need updating. Continue?')) return;
+      try {
+        const res = await fetch('/api/auth/regenerate-key', {
+          method: 'POST', credentials: 'include'
+        });
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.setItem('api_key', data.api_key);
+          var keyDisp = document.getElementById('profileApiKeyDisplay');
+          if (keyDisp) keyDisp.textContent = 'API_KEY: ' + data.api_key;
+          var msg = document.getElementById('regenMsg');
+          if (msg) { msg.style.display = 'block'; setTimeout(function(){ msg.style.display='none'; }, 5000); }
+        } else {
+          alert('Failed: ' + data.detail);
+        }
+      } catch(e) { alert('Network error.'); }
+    }
     function saveProfile() {
+      var tz = document.getElementById("profileTimezone").value;
       var profile = {
         profileName: document.getElementById("profileName").value,
         profileEmail: document.getElementById("profileEmail").value,
         profileOccupation: document.getElementById("profileOccupation").value,
         profilePhone: document.getElementById("profilePhone").value,
+        profileTimezone: tz,
       };
       localStorage.setItem("ms_profile", JSON.stringify(profile));
+      localStorage.setItem("ms_timezone", tz);
       var msg = document.getElementById("profileSaveMsg");
       if (msg) { msg.style.display = "block"; setTimeout(function () { msg.style.display = "none"; }, 3000); }
     }

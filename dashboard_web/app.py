@@ -226,7 +226,30 @@ def login_user(user: UserCreate, response: Response, db: Session = Depends(get_d
 def logout_user(response: Response):
     response.delete_cookie("ms_session", samesite="lax", secure=True)
     return {"message": "Logged out"}
+@app.post("/api/auth/reset-password")
+def reset_password(payload: UserCreate, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == payload.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with that email.")
+    salt = bcrypt.gensalt()
+    user.hashed_password = bcrypt.hashpw(payload.password.encode('utf-8'), salt).decode('utf-8')
+    db.commit()
+    return {"message": "Password updated successfully."}
 
+@app.post("/api/auth/regenerate-key")
+def regenerate_api_key(response: Response, ms_session: Optional[str] = Cookie(default=None), db: Session = Depends(get_db)):
+    if not ms_session:
+        raise HTTPException(status_code=403, detail="Not logged in.")
+    user = db.query(User).filter(User.api_key == ms_session).first()
+    if not user:
+        raise HTTPException(status_code=403, detail="Invalid session.")
+    user.api_key = generate_api_key()
+    db.commit()
+    response.set_cookie(
+        key="ms_session", value=user.api_key,
+        httponly=True, samesite="lax", secure=True, max_age=86400 * 30
+    )
+    return {"message": "New API key generated.", "api_key": user.api_key}
 @app.post("/api/v1/sdk_login")
 def sdk_login_endpoint(credentials: SDKLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == credentials.email).first()

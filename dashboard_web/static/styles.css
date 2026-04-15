@@ -376,7 +376,13 @@ body{
   letter-spacing:1px;
   opacity:0.92;
 }
-.check input{width:16px; height:16px; accent-color: #4be28d}
+.check input{
+  width:16px; height:16px;
+  accent-color: #4be28d;
+  border: 2px solid rgba(255,255,255,0.4) !important;
+  appearance: auto;
+  cursor: pointer;
+}
 
 .hint{
   margin-top:10px;
@@ -500,9 +506,27 @@ body:not([data-page="dash"]) #dashControls{display:none}
 
 
 /* Light Theme Override */
+/* Light Theme Override */
 body.light-theme {
-    background: #f4f7f6;
-    color: #1a1d20;
+  background: #f0f2f4 !important;
+  color: #1a1d20 !important;
 }
-body.light-theme .dataset-table th { background: #e0e5e9; color: black; }
-body.light-theme .tab-content { background: #ffffff; }
+body.light-theme .topbar,
+body.light-theme .metastrip,
+body.light-theme .bottomnav { background: #ffffff !important; border-color: #dde1e5 !important; }
+body.light-theme .block,
+body.light-theme .panel,
+body.light-theme .kpi,
+body.light-theme .strip,
+body.light-theme .evalwrap,
+body.light-theme .codebox,
+body.light-theme .alertbox { background: #ffffff !important; border-color: #dde1e5 !important; color: #1a1d20 !important; }
+body.light-theme .muted { color: #5a6370 !important; }
+body.light-theme .navbtn { color: #444 !important; }
+body.light-theme .navbtn.active { color: #000 !important; background: rgba(0,0,0,0.06) !important; }
+body.light-theme .table th,
+body.light-theme .table td,
+body.light-theme .evaltable th,
+body.light-theme .evaltable td { color: #1a1d20 !important; border-color: #dde1e5 !important; }
+body.light-theme .bad { color: #b00020 !important; }
+body.light-theme canvas { filter: invert(1) hue-rotate(180deg); }

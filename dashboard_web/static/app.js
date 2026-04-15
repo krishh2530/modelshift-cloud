@@ -259,6 +259,10 @@
   // State
   // -----------------------------
   const state = {
+    hoverLatestX: null,
+    hoverPrevX: null,
+    panDragStart: null,
+    panDragPlayhead: null,    
     latest: {},
     previous: {},
 
@@ -1344,6 +1348,45 @@ function setLivePill(isLive) {
     ctx.fillText("CLEAN", gx1 - 120, gy0 + 20);
     ctx.fillStyle = "rgba(209,31,31,0.90)";
     ctx.fillText("DRIFTED", gx1 - 120, gy0 + 40);
+
+    // hover crosshair tooltip
+    if (isNum(opts.hoverX)) {
+      const hx = opts.hoverX;
+      if (hx >= gx0 && hx <= gx1) {
+        const fracX = (hx - gx0) / (gx1 - gx0);
+        const idx = Math.round(start + fracX * (vis - 1));
+        const cleanVal = getVal(seriesClean, idx);
+        const driftedVal = getVal(seriesDrifted, idx);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.3)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(hx, gy0); ctx.lineTo(hx, gy1); ctx.stroke();
+        ctx.setLineDash([]);
+
+        const lines = [`Window: ${idx}`];
+        if (isNum(cleanVal)) lines.push(`CLEAN: ${cleanVal.toFixed(2)}`);
+        if (isNum(driftedVal)) lines.push(`DRIFTED: ${driftedVal.toFixed(2)}`);
+
+        const tw = 140, th = lines.length * 18 + 10;
+        let tx = hx + 10;
+        if (tx + tw > gx1) tx = hx - tw - 10;
+        const ty = gy0 + 10;
+
+        ctx.fillStyle = "rgba(15,17,18,0.92)";
+        ctx.strokeStyle = "rgba(209,31,31,0.6)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([]);
+        ctx.fillRect(tx, ty, tw, th);
+        ctx.strokeRect(tx, ty, tw, th);
+
+        ctx.font = "11px ui-monospace, Menlo, Consolas, monospace";
+        lines.forEach((line, i) => {
+          ctx.fillStyle = i === 0 ? "rgba(255,255,255,0.7)" : i === 1 ? "rgba(255,255,255,0.9)" : "rgba(209,31,31,0.9)";
+          ctx.fillText(line, tx + 8, ty + 16 + i * 18);
+        });
+      }
+    }
   }
 
   // -----------------------------
@@ -1467,6 +1510,41 @@ setLivePill(liveConnected);
     state.dirtyEval = true;
     state.dirtyCharts = true;
     state.dirtyInsights = true;
+
+    // --- FIX 4: Tab title, favicon blink, alerts nav highlight ---
+    const isCritical = latestStatus.includes("CRITICAL");
+    const isWarn = latestStatus.includes("WARN");
+
+    // Tab title
+    if (isCritical) {
+      document.title = "⚠ ALERT — MODELSHIFT";
+    } else if (isWarn) {
+      document.title = "! WARNING — MODELSHIFT";
+    } else {
+      document.title = "ModelShift-Lite Dashboard";
+    }
+
+    // Alerts navbtn goes red on critical
+    document.querySelectorAll(".navbtn").forEach((b) => {
+      if (b.dataset.page === "alerts") {
+        b.style.color = isCritical ? "#d11f1f" : isWarn ? "#ffaa00" : "";
+        b.style.fontWeight = (isCritical || isWarn) ? "900" : "";
+      }
+    });
+
+    // Favicon swap
+    let favicon = document.getElementById("ms-favicon");
+    if (!favicon) {
+      favicon = document.createElement("link");
+      favicon.id = "ms-favicon";
+      favicon.rel = "icon";
+      document.head.appendChild(favicon);
+    }
+    if (isCritical) {
+      favicon.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23d11f1f'/><text x='6' y='24' font-size='22' fill='white'>⚠</text></svg>";
+    } else {
+      favicon.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230f1112'/><text x='4' y='24' font-size='22' fill='%23d11f1f'>▸</text></svg>";
+    }
 
     // If run changed, refresh history
     if (state.latestMeta.run_id && state.latestMeta.run_id !== state.lastFetchRunId) {
@@ -1687,8 +1765,8 @@ async function fetchResults() {
           centerPrev = Math.min(Math.max(0, prevTotal - 1), Math.max(0, state.playhead));
         }
 
-        drawChart(chartLatest, state.latestSeries.clean, state.latestSeries.drifted, { centerIndex: centerLatest });
-        drawChart(chartPrevious, state.prevSeries.clean, state.prevSeries.drifted, { centerIndex: centerPrev });
+        drawChart(chartLatest, state.latestSeries.clean, state.latestSeries.drifted, { centerIndex: centerLatest, hoverX: state.hoverLatestX });
+        drawChart(chartPrevious, state.prevSeries.clean, state.prevSeries.drifted, { centerIndex: centerPrev, hoverX: state.hoverPrevX });
       }
     }
 
@@ -2087,11 +2165,6 @@ async function fetchResults() {
       state.syncAxes = !!syncAxesChk.checked;
       state.dirtyCharts = true;
     });
-
-    loopChk?.addEventListener("change", () => {
-      state.loop = !!loopChk.checked;
-    });
-
     // theme toggle (FIXED: single listener only)
     themeBtn?.addEventListener("click", () => {
       const current = localStorage.getItem("ms_theme") || "dark";
@@ -2149,7 +2222,7 @@ clearHistoryBtn?.addEventListener("click", async () => {
     setZoom(state.zoom);
     setSpeed(state.speed);
     state.syncAxes = !!syncAxesChk?.checked;
-    state.loop = !!loopChk?.checked;
+    state.loop = true; // always loop
 
     applyTheme();
 
@@ -2173,6 +2246,54 @@ clearHistoryBtn?.addEventListener("click", async () => {
     setLivePill(false);
 
     // resize => redraw charts once
+    // Hover + pan on charts
+    function setupChartInteraction(canvas, isLatest) {
+      canvas.style.cursor = "crosshair";
+
+      canvas.addEventListener("mousemove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        if (isLatest) state.hoverLatestX = x;
+        else state.hoverPrevX = x;
+        state.dirtyCharts = true;
+
+        // drag-to-pan when paused
+        if (!state.playing && state.panDragStart !== null) {
+          const series = isLatest ? state.latestSeries : state.prevSeries;
+          const total = Math.max(series.clean.length, series.drifted.length);
+          if (total < 2) return;
+          const dx = x - state.panDragStart;
+          const pixelsPerPoint = canvas.getBoundingClientRect().width / Math.max(1, total);
+          const delta = dx / Math.max(1, pixelsPerPoint);
+          state.playhead = Math.max(0, Math.min(total - 1, state.panDragPlayhead - delta));
+          state.dirtyCharts = true;
+        }
+      });
+
+      canvas.addEventListener("mousedown", (e) => {
+        if (!state.playing) {
+          state.panDragStart = e.clientX - canvas.getBoundingClientRect().left;
+          state.panDragPlayhead = state.playhead;
+          canvas.style.cursor = "grabbing";
+        }
+      });
+
+      canvas.addEventListener("mouseup", () => {
+        state.panDragStart = null;
+        canvas.style.cursor = "crosshair";
+      });
+
+      canvas.addEventListener("mouseleave", () => {
+        if (isLatest) state.hoverLatestX = null;
+        else state.hoverPrevX = null;
+        state.panDragStart = null;
+        canvas.style.cursor = "crosshair";
+        state.dirtyCharts = true;
+      });
+    }
+
+    if (chartLatest) setupChartInteraction(chartLatest, true);
+    if (chartPrevious) setupChartInteraction(chartPrevious, false);
     window.addEventListener("resize", () => {
       state.dirtyCharts = true;
     });

@@ -73,8 +73,9 @@
                     <button class="group relative w-full h-14 bg-[#1d2023] border-2 border-primary chamfer-btn flex items-center justify-center transition-all hover:bg-primary hover:shadow-[0_0_20px_rgba(209,31,31,0.6)]" type="submit">
                         <span class="font-mono text-sm tracking-[0.3em] font-bold text-white transition-all uppercase">INITIALIZE SESSION</span>
                     </button>
-                    <div class="mt-4 text-center">
+                    <div class="mt-4 text-center flex justify-between">
                         <a class="text-xs font-mono text-gray-300 hover:text-white font-bold tracking-widest" href="/signup">> NO_API_KEY? [ REGISTER ]</a>
+                        <button onclick="document.getElementById('forgotModal').style.display='flex'" class="text-xs font-mono text-gray-400 hover:text-red-400 font-bold tracking-widest bg-transparent border-0 cursor-pointer">[ FORGOT_PASSWORD ]</button>
                     </div>
                 </form>
             </div>
@@ -88,7 +89,22 @@
         </div>
     </footer>
 
+    <!-- Forgot Password Modal -->
+    <div id="forgotModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:999; display:none; align-items:center; justify-content:center;">
+      <div style="background:#0f1112; border:1px solid rgba(209,31,31,0.5); padding:32px; max-width:420px; width:90%; font-family:'Courier New',monospace;">
+        <h3 style="color:#d11f1f; letter-spacing:2px; margin-top:0;">RESET_PASSWORD</h3>
+        <p style="color:#9aa4ad; font-size:13px;">Enter your email and new password.</p>
+        <input id="resetEmail" type="email" placeholder="YOUR@EMAIL.COM" style="width:100%; background:transparent; border:0; border-bottom:2px solid #4a4d52; color:white; padding:8px 0; margin:12px 0; font-family:'Courier New',monospace; font-size:14px; box-sizing:border-box;"/>
+        <input id="resetPass" type="password" placeholder="NEW PASSWORD" style="width:100%; background:transparent; border:0; border-bottom:2px solid #4a4d52; color:white; padding:8px 0; margin:12px 0; font-family:'Courier New',monospace; font-size:14px; box-sizing:border-box;"/>
+        <div style="display:flex; gap:12px; margin-top:16px;">
+          <button onclick="submitReset()" style="flex:1; background:#d11f1f; color:white; border:none; padding:12px; font-family:'Courier New',monospace; font-weight:bold; letter-spacing:2px; cursor:pointer;">CONFIRM</button>
+          <button onclick="document.getElementById('forgotModal').style.display='none'" style="flex:1; background:transparent; color:#9aa4ad; border:1px solid #4a4d52; padding:12px; font-family:'Courier New',monospace; cursor:pointer;">CANCEL</button>
+        </div>
+        <div id="resetMsg" style="margin-top:12px; font-size:12px; color:#4be28d; display:none;"></div>
+      </div>
+    </div>
     <script>
+        
         document.querySelector('form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const inputs = document.querySelectorAll('input');
@@ -118,6 +134,25 @@
                 btn.innerText = "INITIALIZE SESSION";
             }
         });
+    async function submitReset() {
+            const email = document.getElementById('resetEmail').value;
+            const password = document.getElementById('resetPass').value;
+            const msg = document.getElementById('resetMsg');
+            try {
+                const res = await fetch('/api/auth/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                msg.style.display = 'block';
+                msg.style.color = res.ok ? '#4be28d' : '#d11f1f';
+                msg.textContent = res.ok ? '✓ Password updated. You can now log in.' : '✗ ' + data.detail;
+            } catch(e) {
+                msg.style.display = 'block';
+                msg.textContent = '✗ Network error.';
+            }
+        }    
     </script>
 </body>
 </html>
