@@ -412,6 +412,62 @@ monitor.<span class="fn">push</span>()
       </div>
     </div>
 
+<!-- ALTERNATIVE: Direct API -->
+    <div class="mb-14">
+      <div class="flex items-center gap-4 mb-6">
+        <div class="step-badge">★</div>
+        <h3 class="text-xl font-black uppercase tracking-[0.15em] text-primary">ALTERNATIVE — DIRECT API (NO SDK)</h3>
+      </div>
+      <p class="text-on-surface-variant text-sm uppercase tracking-wide mb-4">
+        If the SDK import fails, use direct HTTP requests. Same result, full control.
+      </p>
+      <div class="code-block relative">
+        <button class="copy-btn" onclick="copyCode(this)">COPY</button>
+<span class="kw">import</span> requests, uuid, numpy <span class="kw">as</span> np
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime, timezone
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> accuracy_score, f1_score, roc_auc_score, log_loss, mean_squared_error
+
+URL = <span class="st">"https://modelshift-api.onrender.com"</span>
+
+<span class="cm"># 1. Get API key</span>
+api_key = requests.<span class="fn">post</span>(f<span class="st">"{URL}/api/v1/sdk_login"</span>,
+    json={<span class="st">"email"</span>: <span class="st">"you@email.com"</span>, <span class="st">"password"</span>: <span class="st">"yourpassword"</span>}).json()[<span class="st">"api_key"</span>]
+
+<span class="cm"># 2. Push payload with evaluation metrics included</span>
+mse = mean_squared_error(y_live, live_probs)
+requests.<span class="fn">post</span>(f<span class="st">"{URL}/api/v1/track"</span>,
+    headers={<span class="st">"X-API-Key"</span>: api_key},
+    json={
+        <span class="st">"run_id"</span>: f<span class="st">"run_{uuid.uuid4().hex[:8]}"</span>,
+        <span class="st">"generated_at"</span>: datetime.<span class="fn">now</span>(timezone.utc).<span class="fn">isoformat</span>(),
+        <span class="st">"status"</span>: <span class="st">"WARNING_DRIFT"</span>,
+        <span class="st">"clean_health"</span>: <span class="nm">100.0</span>,
+        <span class="st">"drifted_health"</span>: <span class="nm">84.0</span>,
+        <span class="st">"drifted_pred_ks"</span>: <span class="nm">0.158</span>,
+        <span class="st">"drifted_last_window_feature"</span>: <span class="st">"INCOME"</span>,
+        <span class="st">"drifted_last_window_ks"</span>: <span class="nm">0.599</span>,
+        <span class="st">"dataset_sample"</span>: X_live.<span class="fn">head</span>(<span class="nm">15</span>).<span class="fn">to_dict</span>(orient=<span class="st">"records"</span>),
+        <span class="st">"baseline_sample"</span>: X_train.<span class="fn">head</span>(<span class="nm">15</span>).<span class="fn">to_dict</span>(orient=<span class="st">"records"</span>),
+        <span class="st">"evaluation"</span>: {
+            <span class="st">"clean"</span>:   {<span class="st">"accuracy"</span>: <span class="fn">round</span>(accuracy_score(y_train, baseline_preds), <span class="nm">4</span>),
+                          <span class="st">"f1"</span>: <span class="fn">round</span>(f1_score(y_train, baseline_preds, zero_division=<span class="nm">0</span>), <span class="nm">4</span>),
+                          <span class="st">"roc_auc"</span>: <span class="fn">round</span>(roc_auc_score(y_train, baseline_probs), <span class="nm">4</span>),
+                          <span class="st">"log_loss"</span>: <span class="fn">round</span>(log_loss(y_train, baseline_probs), <span class="nm">6</span>),
+                          <span class="st">"mse"</span>: <span class="fn">round</span>(mean_squared_error(y_train, baseline_probs), <span class="nm">6</span>),
+                          <span class="st">"rmse"</span>: <span class="fn">round</span>(float(np.<span class="fn">sqrt</span>(mean_squared_error(y_train, baseline_probs))), <span class="nm">6</span>),
+                          <span class="st">"r2"</span>: <span class="fn">round</span>(float(<span class="nm">1</span> - mean_squared_error(y_train, baseline_probs) / np.<span class="fn">var</span>(y_train)), <span class="nm">6</span>)},
+            <span class="st">"drifted"</span>: {<span class="st">"accuracy"</span>: <span class="fn">round</span>(accuracy_score(y_live, live_preds), <span class="nm">4</span>),
+                          <span class="st">"f1"</span>: <span class="fn">round</span>(f1_score(y_live, live_preds, zero_division=<span class="nm">0</span>), <span class="nm">4</span>),
+                          <span class="st">"roc_auc"</span>: <span class="fn">round</span>(roc_auc_score(y_live, live_probs), <span class="nm">4</span>),
+                          <span class="st">"log_loss"</span>: <span class="fn">round</span>(log_loss(y_live, live_probs), <span class="nm">6</span>),
+                          <span class="st">"mse"</span>: <span class="fn">round</span>(mean_squared_error(y_live, live_probs), <span class="nm">6</span>),
+                          <span class="st">"rmse"</span>: <span class="fn">round</span>(float(np.<span class="fn">sqrt</span>(mean_squared_error(y_live, live_probs))), <span class="nm">6</span>),
+                          <span class="st">"r2"</span>: <span class="fn">round</span>(float(<span class="nm">1</span> - mean_squared_error(y_live, live_probs) / np.<span class="fn">var</span>(y_live)), <span class="nm">6</span>)}
+        },
+        <span class="st">"series"</span>: {<span class="st">"clean"</span>: [<span class="nm">100.0</span>]*<span class="nm">15</span>, <span class="st">"drifted"</span>: [<span class="nm">100</span> - i*<span class="nm">1.1</span> <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="nm">15</span>)]}
+    })
+      </div>
+    </div>    
     <!-- CTA -->
     <div class="chamfer-card bg-surface-container-low border border-primary/20 p-8 glow-border text-center">
       <p class="text-[10px] tracking-[0.4em] text-primary uppercase mb-3">// READY?</p>
