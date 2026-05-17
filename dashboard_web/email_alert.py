@@ -1,54 +1,37 @@
 import os
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import requests
 
-# ==========================================
-# ⚠️ REPLACE THESE WITH YOUR CREDENTIALS
-# ==========================================
-SENDER_EMAIL = os.environ.get("SMTP_EMAIL", "").strip()
-APP_PASSWORD = os.environ.get("SMTP_APP_PASSWORD", "").strip()
-# ==========================================
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
 
-def send_critical_alert(recipient_email: str, run_id: str, feature: str, ks_score: float, health: float):
-    """Drafts and sends a cyberpunk-themed HTML email to the user."""
-    
-    subject = f"[CRITICAL] ModelShift Alert: Drift Detected in '{feature}'"
+def send_critical_alert(recipient_email: str, run_id: str, feature: str,
+                        ks_score: float, health: float):
 
-    # The HTML template for the email (styled to match your dashboard)
+    if not RESEND_API_KEY:
+        print("[!] EMAIL SKIPPED: RESEND_API_KEY env var not set.")
+        return
+
     html_content = f"""
     <html>
-    <body style="font-family: 'Courier New', monospace; background-color: #050608; color: #e3e2e5; padding: 20px;">
-        <div style="border-top: 3px solid #d11f1f; background-color: #0f1112; padding: 30px; border-left: 1px solid #1f2329; border-right: 1px solid #1f2329; border-bottom: 1px solid #1f2329; max-width: 600px; margin: 0 auto;">
-            
-            <h2 style="color: #d11f1f; margin-top: 0; letter-spacing: 2px;">⚠️ CRITICAL_DRIFT_DETECTED</h2>
-            <p style="color: #9aa4ad; font-size: 14px;">ModelShift-Lite has detected severe data distribution drift in your live pipeline. Immediate review is recommended.</p>
-            
-            <hr style="border-color: #1f2329; margin: 20px 0;">
-            
-            <table style="width: 100%; color: #e3e2e5; border-collapse: collapse; font-size: 14px;">
-                <tr>
-                    <td style="padding: 8px 0; color: #9aa4ad;">RUN_ID:</td>
-                    <td>{run_id}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px 0; color: #9aa4ad;">PRIMARY_FAULT_FEATURE:</td>
-                    <td style="color: #d11f1f; font-weight: bold;">{feature}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px 0; color: #9aa4ad;">KS_STATISTIC:</td>
-                    <td>{ks_score:.4f}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px 0; color: #9aa4ad;">SYSTEM_HEALTH:</td>
-                    <td style="color: #d11f1f; font-weight: bold;">{health:.1f} / 100</td>
-                </tr>
+    <body style="font-family:'Courier New',monospace;background:#050608;color:#e3e2e5;padding:20px;">
+        <div style="border-top:3px solid #d11f1f;background:#0f1112;padding:30px;max-width:600px;margin:0 auto;">
+            <h2 style="color:#d11f1f;margin-top:0;letter-spacing:2px;">⚠️ CRITICAL_DRIFT_DETECTED</h2>
+            <p style="color:#9aa4ad;font-size:14px;">
+                ModelShift-Lite has detected severe data distribution drift in your live pipeline.
+                Immediate review is recommended.
+            </p>
+            <hr style="border-color:#1f2329;margin:20px 0;">
+            <table style="width:100%;color:#e3e2e5;border-collapse:collapse;font-size:14px;">
+                <tr><td style="padding:8px 0;color:#9aa4ad;">RUN_ID:</td><td>{run_id}</td></tr>
+                <tr><td style="padding:8px 0;color:#9aa4ad;">PRIMARY_FAULT_FEATURE:</td>
+                    <td style="color:#d11f1f;font-weight:bold;">{feature}</td></tr>
+                <tr><td style="padding:8px 0;color:#9aa4ad;">KS_STATISTIC:</td>
+                    <td>{ks_score:.4f}</td></tr>
+                <tr><td style="padding:8px 0;color:#9aa4ad;">SYSTEM_HEALTH:</td>
+                    <td style="color:#d11f1f;font-weight:bold;">{health:.1f} / 100</td></tr>
             </table>
-            
-            <hr style="border-color: #1f2329; margin: 20px 0;">
-            
-            <p style="color: #6b7785; font-size: 11px; text-align: center;">
-                [SYS.OP.AUTOMATED_DISPATCH] <br>
+            <hr style="border-color:#1f2329;margin:20px 0;">
+            <p style="color:#6b7785;font-size:11px;text-align:center;">
+                [SYS.OP.AUTOMATED_DISPATCH]<br>
                 Log in to your ModelShift Terminal to view datasets and download reports.
             </p>
         </div>
@@ -56,37 +39,25 @@ def send_critical_alert(recipient_email: str, run_id: str, feature: str, ks_scor
     </html>
     """
 
-    msg = MIMEMultipart()
-    msg['From'] = f"ModelShift-Lite <{SENDER_EMAIL}>"
-    msg['To'] = recipient_email
-    msg['Subject'] = subject
-    msg.attach(MIMEText(html_content, 'html'))
-
-    # Guard: skip entirely if credentials are not configured
-    if not SENDER_EMAIL or not APP_PASSWORD:
-        print(f"[!] EMAIL SKIPPED: SMTP_EMAIL or SMTP_APP_PASSWORD env vars not set.")
-        return
     try:
-        print(f"[~] EMAIL ATTEMPT: Sending to {recipient_email} via {SENDER_EMAIL}...")
-        import ssl
-        context = ssl.create_default_context()
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context, timeout=15) as server:
-            server.login(SENDER_EMAIL, APP_PASSWORD)
-            server.send_message(msg)
-        print(f"[✓] EMAIL DISPATCHED: Critical alert sent to {recipient_email}")
-    # try:
-    #     print(f"[~] EMAIL ATTEMPT: Sending to {recipient_email} via {SENDER_EMAIL}...")
-    #     server = smtplib.SMTP('smtp.gmail.com', 587, timeout=15)
-    #     server.ehlo()
-    #     server.starttls()
-    #     server.ehlo()
-    #     server.login(SENDER_EMAIL, APP_PASSWORD)
-    #     server.send_message(msg)
-    #     server.quit()
-    #     print(f"[✓] EMAIL DISPATCHED: Critical alert sent to {recipient_email}")
-    except smtplib.SMTPAuthenticationError as e:
-        print(f"[!] EMAIL AUTH FAILED: Check SMTP_EMAIL and SMTP_APP_PASSWORD. Error: {e}")
-    except smtplib.SMTPException as e:
-        print(f"[!] EMAIL SMTP ERROR: {e}")
+        print(f"[~] EMAIL ATTEMPT via Resend API to {recipient_email}...")
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "from": "ModelShift <onboarding@resend.dev>",
+                "to": [recipient_email],
+                "subject": f"[CRITICAL] ModelShift Alert: Drift in '{feature}'",
+                "html": html_content
+            },
+            timeout=15
+        )
+        if response.status_code in (200, 201):
+            print(f"[✓] EMAIL DISPATCHED via Resend to {recipient_email}")
+        else:
+            print(f"[!] EMAIL FAILED: Resend returned {response.status_code}: {response.text}")
     except Exception as e:
-        print(f"[!] EMAIL FAILED: Could not send alert to {recipient_email}. Error: {e}")
+        print(f"[!] EMAIL FAILED: {e}")
