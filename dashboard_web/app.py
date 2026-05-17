@@ -277,8 +277,12 @@ def receive_drift_data(
     db_save_run(db, user.api_key, run_id, payload)
 
     # Fire email alert if critical
-    status = payload.get("status", "")
+    # Normalise: strip whitespace, handle case variations
+    status = str(payload.get("status", "")).strip()
+    print(f"[TRACK] run_id={run_id} | status='{status}' | user={user.email}")
+
     if status == "CRITICAL_DRIFT":
+        print(f"[EMAIL] Scheduling critical alert to {user.email}")
         background_tasks.add_task(
             send_critical_alert,
             recipient_email=user.email,
