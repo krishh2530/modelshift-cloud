@@ -69,7 +69,7 @@ def send_critical_alert(recipient_email: str, run_id: str, feature: str, ks_scor
 
     try:
         print(f"[~] EMAIL ATTEMPT: Sending to {recipient_email} via {SENDER_EMAIL}...")
-        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server = smtplib.SMTP('smtp.gmail.com', 587, timeout=15)
         server.ehlo()
         server.starttls()
         server.ehlo()
