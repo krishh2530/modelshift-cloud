@@ -229,7 +229,10 @@ creds = json.load(open(CRED_FILE))
         <h3 class="text-xl font-black uppercase tracking-[0.15em] text-primary">ADD TO YOUR NOTEBOOK / SCRIPT</h3>
       </div>
       <p class="text-on-surface-variant text-sm uppercase tracking-wide mb-4">
-        Paste this after your existing training code. Replace <code class="text-primary bg-surface-container-high px-1">X_train</code>, <code class="text-primary bg-surface-container-high px-1">X_live</code>, and <code class="text-primary bg-surface-container-high px-1">model</code> with your own variables.
+        Two ways to authenticate. Option A uses email + password. Option B uses your API key
+        directly (find it in your dashboard Profile tab).
+      </p>
+      <p class="text-xs font-bold uppercase tracking-widest text-primary mb-2">OPTION A — Email + Password
       </p>
       <div class="code-block relative">
         <button class="copy-btn" onclick="copyCode(this)">COPY</button>
@@ -267,9 +270,26 @@ monitor.<span class="fn">compute_prediction_drift</span>()
 monitor.<span class="fn">push</span>()
 
 <span class="kw">print</span>(<span class="st">"✅ Done! Check your dashboard."</span>)
-      </div>
     </div>
+<p class="text-xs font-bold uppercase tracking-widest text-primary mt-6 mb-2">OPTION B — API Key Direct (Recommended)</p>
+      <div class="code-block relative">
+        <button class="copy-btn" onclick="copyCode(this)">COPY</button>
+<span class="kw">import</span> <span class="nm">modelshift.monitor</span> <span class="kw">as</span> <span class="nm">ms</span>
 
+<span class="cm"># Get your API key from: dashboard → Profile tab → API_KEY field</span>
+ms.<span class="fn">init</span>(
+    api_key=<span class="st">"your_api_key_here"</span>,
+    dashboard_url=<span class="st">"https://modelshift-api.onrender.com"</span>
+)
+
+<span class="nm">monitor</span> = ms.<span class="fn">ModelMonitor</span>(X_train)
+monitor.<span class="fn">set_baseline_predictions</span>(model.<span class="fn">predict_proba</span>(X_train)[:, <span class="nm">1</span>])
+monitor.<span class="fn">update</span>(X_live)
+monitor.<span class="fn">update_predictions</span>(model.<span class="fn">predict_proba</span>(X_live)[:, <span class="nm">1</span>])
+monitor.<span class="fn">compute_feature_drift</span>()
+monitor.<span class="fn">compute_prediction_drift</span>()
+monitor.<span class="fn">push</span>()
+      </div>
     <!-- Constraints -->
     <div class="mb-14">
       <div class="flex items-center gap-4 mb-6">
@@ -410,7 +430,7 @@ monitor.<span class="fn">push</span>()
 
 <span class="kw">print</span>(<span class="st">"✅ Dashboard updated!"</span>)
       </div>
-    </div>
+      </div>
 
 <!-- ALTERNATIVE: Direct API -->
     <div class="mb-14">

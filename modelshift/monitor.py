@@ -35,6 +35,16 @@ def init(api_key: str, dashboard_url: str = "http://127.0.0.1:8000"):
     # This automatically adds /api/v1/track to whatever URL the user provides
     _CLOUD_CONFIG["endpoint"] = f"{dashboard_url.rstrip('/')}/api/v1/track"
     print(f"[✓] ModelShift SDK Authenticated. Cloud sync enabled.")
+def init(api_key: str, dashboard_url: str = "https://modelshift-api.onrender.com"):
+    """
+    Authenticate using an API key directly (no email/password needed).
+    Get your API key from the Profile tab on your dashboard.
+    """
+    if not api_key or not api_key.strip():
+        raise ValueError("api_key cannot be empty. Get it from your dashboard Profile tab.")
+    _CLOUD_CONFIG["api_key"] = api_key.strip()
+    _CLOUD_CONFIG["dashboard_url"] = dashboard_url.rstrip("/")
+    print(f"[✓] ModelShift SDK initialised with API key. Cloud sync enabled.")
 def login(email: str, password: str, dashboard_url: str = "http://127.0.0.1:8000"):
     """Authenticates the user and automatically configures the API Key."""
     print(f"🔐 Authenticating '{email}' with ModelShift Cloud...")
@@ -258,9 +268,19 @@ class ModelMonitor:
     # -----------------------
     def push(self) -> Optional[Dict[str, Any]]:
         endpoint = _CLOUD_CONFIG["endpoint"]
-        if not _CLOUD_CONFIG["api_key"]:
-            print("[!] SDK Warning: API key not configured. Skipping cloud sync.")
-            return None
+        api_key = _CLOUD_CONFIG.get("api_key")
+        dashboard_url = _CLOUD_CONFIG.get("dashboard_url")
+
+        if not api_key:
+            raise RuntimeError(
+                "Not authenticated. Call ms.login(email, password, dashboard_url) "
+                "or ms.init(api_key, dashboard_url) before calling push()."
+            )
+
+        if not dashboard_url:
+            raise RuntimeError(
+                "No dashboard URL set. Call ms.login() or ms.init() first."
+            )
 
         try:
             feat_drift = getattr(self, 'feature_drift_results', {})
