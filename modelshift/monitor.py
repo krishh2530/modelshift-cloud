@@ -23,10 +23,10 @@ from modelshift.drift.severity import (
 # -------------------------------------------------------------------
 _CLOUD_CONFIG = {
     "api_key": None,
-    "endpoint": "https://modelshift-api.onrender.com"
+    "endpoint": "https://modelshift-api.onrender.com/api/v1/track"
 }
 
-def init(api_key: str, dashboard_url: str = "http://127.0.0.1:8000"):
+def init(api_key: str, dashboard_url: str = "https://modelshift-api.onrender.com"):
     """
     Initialize the ModelShift SDK with your cloud API Key.
     This links your local ML models to your cloud dashboard.
@@ -42,9 +42,12 @@ def init(api_key: str, dashboard_url: str = "https://modelshift-api.onrender.com
     """
     if not api_key or not api_key.strip():
         raise ValueError("api_key cannot be empty. Get it from your dashboard Profile tab.")
+    base = dashboard_url.rstrip("/")
     _CLOUD_CONFIG["api_key"] = api_key.strip()
-    _CLOUD_CONFIG["dashboard_url"] = dashboard_url.rstrip("/")
+    _CLOUD_CONFIG["dashboard_url"] = base
+    _CLOUD_CONFIG["endpoint"] = f"{base}/api/v1/track"
     print(f"[✓] ModelShift SDK initialised with API key. Cloud sync enabled.")
+    print(f"[✓] Endpoint set to: {_CLOUD_CONFIG['endpoint']}")
 def login(email: str, password: str, dashboard_url: str = "https://modelshift-api.onrender.com"):
     """Authenticates the user and automatically configures the API Key."""
     print(f"🔐 Authenticating '{email}' with ModelShift Cloud...")
