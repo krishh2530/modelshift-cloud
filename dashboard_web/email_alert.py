@@ -66,17 +66,24 @@ def send_critical_alert(recipient_email: str, run_id: str, feature: str, ks_scor
     if not SENDER_EMAIL or not APP_PASSWORD:
         print(f"[!] EMAIL SKIPPED: SMTP_EMAIL or SMTP_APP_PASSWORD env vars not set.")
         return
-
     try:
         print(f"[~] EMAIL ATTEMPT: Sending to {recipient_email} via {SENDER_EMAIL}...")
-        server = smtplib.SMTP('smtp.gmail.com', 587, timeout=15)
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
-        server.login(SENDER_EMAIL, APP_PASSWORD)
-        server.send_message(msg)
-        server.quit()
+        import ssl
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context, timeout=15) as server:
+            server.login(SENDER_EMAIL, APP_PASSWORD)
+            server.send_message(msg)
         print(f"[✓] EMAIL DISPATCHED: Critical alert sent to {recipient_email}")
+    # try:
+    #     print(f"[~] EMAIL ATTEMPT: Sending to {recipient_email} via {SENDER_EMAIL}...")
+    #     server = smtplib.SMTP('smtp.gmail.com', 587, timeout=15)
+    #     server.ehlo()
+    #     server.starttls()
+    #     server.ehlo()
+    #     server.login(SENDER_EMAIL, APP_PASSWORD)
+    #     server.send_message(msg)
+    #     server.quit()
+    #     print(f"[✓] EMAIL DISPATCHED: Critical alert sent to {recipient_email}")
     except smtplib.SMTPAuthenticationError as e:
         print(f"[!] EMAIL AUTH FAILED: Check SMTP_EMAIL and SMTP_APP_PASSWORD. Error: {e}")
     except smtplib.SMTPException as e:
