@@ -282,15 +282,17 @@ def receive_drift_data(
     print(f"[TRACK] run_id={run_id} | status='{status}' | user={user.email}")
 
     if status == "CRITICAL_DRIFT":
-        print(f"[EMAIL] Scheduling critical alert to {user.email}")
-        background_tasks.add_task(
-            send_critical_alert,
-            recipient_email=user.email,
-            run_id=run_id,
-            feature=payload.get("drifted_last_window_feature") or "Unknown",
-            ks_score=payload.get("drifted_last_window_ks") or 0.0,
-            health=payload.get("drifted_health") or 0.0
-        )
+        print(f"[EMAIL] CRITICAL_DRIFT detected — firing alert to {user.email}")
+        try:
+            send_critical_alert(
+                recipient_email=user.email,
+                run_id=run_id,
+                feature=payload.get("drifted_last_window_feature") or "Unknown",
+                ks_score=payload.get("drifted_last_window_ks") or 0.0,
+                health=payload.get("drifted_health") or 0.0
+            )
+        except Exception as e:
+            print(f"[EMAIL ERROR] {e}")
     return {"status": "success", "run_id": run_id}
 
 @app.get("/api/results")
