@@ -23,7 +23,7 @@ from modelshift.drift.severity import (
 # -------------------------------------------------------------------
 _CLOUD_CONFIG = {
     "api_key": None,
-    "endpoint": "http://127.0.0.1:8000/api/v1/track"
+    "endpoint": "https://modelshift-api.onrender.com"
 }
 
 def init(api_key: str, dashboard_url: str = "http://127.0.0.1:8000"):
@@ -45,7 +45,7 @@ def init(api_key: str, dashboard_url: str = "https://modelshift-api.onrender.com
     _CLOUD_CONFIG["api_key"] = api_key.strip()
     _CLOUD_CONFIG["dashboard_url"] = dashboard_url.rstrip("/")
     print(f"[✓] ModelShift SDK initialised with API key. Cloud sync enabled.")
-def login(email: str, password: str, dashboard_url: str = "http://127.0.0.1:8000"):
+def login(email: str, password: str, dashboard_url: str = "https://modelshift-api.onrender.com"):
     """Authenticates the user and automatically configures the API Key."""
     print(f"🔐 Authenticating '{email}' with ModelShift Cloud...")
     try:
