@@ -49,7 +49,7 @@ def send_critical_alert(recipient_email: str, run_id: str, feature: str,
             },
             json={
                 "from": "ModelShift <onboarding@resend.dev>",
-                "to": [recipient_email],
+                "to": ["ktams2530@gmail.com"],
                 "subject": f"[CRITICAL] ModelShift Alert: Drift in '{feature}'",
                 "html": html_content
             },
